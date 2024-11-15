@@ -1,8 +1,8 @@
-PWD /Users/john/Projects/stat-139-final
+PWD /Users/john/Projects/stat-139-final/proposal
 INPUT /Users/john/Library/TinyTeX/texmf.cnf
 INPUT /Users/john/Library/TinyTeX/texmf-dist/web2c/texmf.cnf
 INPUT /Users/john/Library/TinyTeX/texmf-var/web2c/pdftex/pdflatex.fmt
-INPUT /Users/john/Projects/stat-139-final/proposal.tex
+INPUT /Users/john/Projects/stat-139-final/proposal/proposal.tex
 OUTPUT proposal.log
 INPUT /Users/john/Library/TinyTeX/texmf-dist/tex/latex/base/article.cls
 INPUT /Users/john/Library/TinyTeX/texmf-dist/tex/latex/base/article.cls

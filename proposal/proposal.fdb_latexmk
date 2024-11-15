@@ -1,5 +1,5 @@
 # Fdb version 4
-["pdflatex"] 1731635144.70306 "/Users/john/Projects/stat-139-final/proposal.tex" "proposal.pdf" "proposal" 1731635144.92181 0
+["pdflatex"] 1731709799.16195 "/Users/john/Projects/stat-139-final/proposal/proposal.tex" "proposal.pdf" "proposal" 1731709799.38943 0
   "/Users/john/Library/TinyTeX/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1136849721 2900 1537cc8184ad1792082cd229ecc269f4 ""
   "/Users/john/Library/TinyTeX/texmf-dist/fonts/tfm/jknappen/ec/tcrm1095.tfm" 1136768653 1536 02c06700a42be0f5a28664c7273f82e7 ""
   "/Users/john/Library/TinyTeX/texmf-dist/fonts/tfm/public/cm/cmbx10.tfm" 1136768653 1328 c834bbb027764024c09d3d2bf908b5f0 ""
@@ -65,10 +65,10 @@
   "/Users/john/Library/TinyTeX/texmf-var/fonts/map/pdftex/updmap/pdftex.map" 1728780384 336858 28cb2ac0c06eda119439bf5cf795eefb ""
   "/Users/john/Library/TinyTeX/texmf-var/web2c/pdftex/pdflatex.fmt" 1728780388 1952435 42e6afe203801459473eefb76bfcad4e ""
   "/Users/john/Library/TinyTeX/texmf.cnf" 1706756122.32397 708 85fd07691b6294ba94c59dbc62380410 ""
-  "/Users/john/Projects/stat-139-final/proposal.tex" 1731635144.35071 5262 260f783a05c1e5a09329f71cf5ae3a25 ""
-  "proposal.aux" 1731635144.88684 162 fa61bf9ecf9314f94d51aa32222a725c "pdflatex"
-  "proposal.out" 1731635144.86602 0 d41d8cd98f00b204e9800998ecf8427e "pdflatex"
-  "proposal.tex" 1731635144.35071 5262 260f783a05c1e5a09329f71cf5ae3a25 ""
+  "/Users/john/Projects/stat-139-final/proposal/proposal.tex" 1731709798.9046 5262 260f783a05c1e5a09329f71cf5ae3a25 ""
+  "proposal.aux" 1731709799.35355 162 fa61bf9ecf9314f94d51aa32222a725c "pdflatex"
+  "proposal.out" 1731709799.33117 0 d41d8cd98f00b204e9800998ecf8427e "pdflatex"
+  "proposal.tex" 1731709798.9046 5262 260f783a05c1e5a09329f71cf5ae3a25 ""
   (generated)
   "proposal.aux"
   "proposal.log"

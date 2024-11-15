@@ -1,0 +1,82 @@
+### Question 3: Work on your EDA
+
+Question 3 allows you to start working on your final project EDA. Thus, if you find any issues with your data, you will be aware early! Evaluate the quality of your data by creating a table which, for each important continuous variable in your dataset reports:
+
+- The number of non-missing observations
+
+- The  number of missing observations
+
+- A measure(s) of the central tendency (i.e., mean, media)
+
+- A measure(s) of variability (i.e, sd, IQR)
+
+and for each important categorical variable in your dataset reports:
+
+- The levels of the variable
+
+- For each level:
+  
+  - The number of non-missing observations
+  
+  - The number of missing observations
+
+```{r}
+data <- read.csv("data/data.csv")
+data <- data %>% select(-c(X, State, County, fips))
+
+create_numeric_summary <- function(data) {
+  numeric_vars <- sapply(data, is.numeric)
+  numeric_data <- data[, numeric_vars]
+  
+  summary_table <- data.frame(
+    Variable = names(numeric_data),
+    Non_Missing = sapply(numeric_data, function(x) sum(!is.na(x))),
+    Missing = sapply(numeric_data, function(x) sum(is.na(x))),
+    Mean = sapply(numeric_data, function(x) round(mean(x, na.rm = TRUE), 2)),
+    Median = sapply(numeric_data, function(x) round(median(x, na.rm = TRUE), 2)),
+    SD = sapply(numeric_data, function(x) round(sd(x, na.rm = TRUE), 2)),
+    IQR = sapply(numeric_data, function(x) round(IQR(x, na.rm = TRUE), 2))
+  )
+  return(summary_table)
+}
+
+create_categorical_summary <- function(data) {
+  categorical_vars <- sapply(data, function(x) is.factor(x) || is.character(x))
+  if(sum(categorical_vars) == 0) return(NULL)
+  
+  categorical_data <- data[, categorical_vars, drop = FALSE]
+  cat_summary <- data.frame()
+  
+  for(var in names(categorical_data)) {
+    levels <- unique(categorical_data[[var]])
+    for(level in levels) {
+      cat_summary <- rbind(cat_summary, data.frame(
+        Variable = var,
+        Level = level,
+        Non_Missing = sum(!is.na(categorical_data[[var]]) & categorical_data[[var]] == level),
+        Missing = sum(is.na(categorical_data[[var]]))
+      ))
+    }
+  }
+  return(cat_summary)
+}
+
+numeric_summary <- create_numeric_summary(data)
+categorical_summary <- create_categorical_summary(data)
+
+print("Numeric Variables Summary:")
+print(numeric_summary, row.names = FALSE)
+
+if(!is.null(categorical_summary)) {
+  print("\nCategorical Variables Summary:")
+  print(categorical_summary, row.names = FALSE)
+}
+```
+
+```{r}
+# Preliminary analysis
+lm_model <- lm(turnout.rate ~ ., data = data)
+summary(lm_model)
+```
+From a preliminary analysis, we observe a moderate $R^2$ of $\approx 45%$. This suggests possible promise for further study of the data. Note that we have already joined our relevant datasets and performed data cleaning (cleaning largely missing values, fixing merging inconsistencies).
+
