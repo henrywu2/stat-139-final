@@ -1,0 +1,361 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+\documentclass[
+]{article}
+\usepackage{xcolor}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{longtable,booktabs,array}
+\usepackage{calc} % for calculating minipage widths
+% Correct order of tables after \paragraph or \subparagraph
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
+\makeatother
+% Allow footnotes in longtable head/foot
+\IfFileExists{footnotehyper.sty}{\usepackage{footnotehyper}}{\usepackage{footnote}}
+\makesavenoteenv{longtable}
+\usepackage{graphicx}
+\makeatletter
+\newsavebox\pandoc@box
+\newcommand*\pandocbounded[1]{% scales image to fit in text height/width
+  \sbox\pandoc@box{#1}%
+  \Gscale@div\@tempa{\textheight}{\dimexpr\ht\pandoc@box+\dp\pandoc@box\relax}%
+  \Gscale@div\@tempb{\linewidth}{\wd\pandoc@box}%
+  \ifdim\@tempb\p@<\@tempa\p@\let\@tempa\@tempb\fi% select the smaller of both
+  \ifdim\@tempa\p@<\p@\scalebox{\@tempa}{\usebox\pandoc@box}%
+  \else\usebox{\pandoc@box}%
+  \fi%
+}
+% Set default figure placement to htbp
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\usepackage{bookmark}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  pdftitle={Exploratory Data Analysis},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\title{Exploratory Data Analysis}
+\author{}
+\date{\vspace{-2.5em}}
+
+\begin{document}
+\maketitle
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{rm}\NormalTok{(}\AttributeTok{list =} \FunctionTok{ls}\NormalTok{())}
+\FunctionTok{require}\NormalTok{(readr)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Loading required package: readr
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{require}\NormalTok{(tidyr)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Loading required package: tidyr
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{require}\NormalTok{(dplyr)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Loading required package: dplyr
+\end{verbatim}
+
+\begin{verbatim}
+## 
+## Attaching package: 'dplyr'
+\end{verbatim}
+
+\begin{verbatim}
+## The following objects are masked from 'package:stats':
+## 
+##     filter, lag
+\end{verbatim}
+
+\begin{verbatim}
+## The following objects are masked from 'package:base':
+## 
+##     intersect, setdiff, setequal, union
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{require}\NormalTok{(knitr)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Loading required package: knitr
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{data }\OtherTok{\textless{}{-}} \FunctionTok{read.csv}\NormalTok{(}\StringTok{"data/processed/data.csv"}\NormalTok{)}
+
+\CommentTok{\# We remove these columns because we want to be predicting the turnout}
+\CommentTok{\# rate solely from county demographics}
+\NormalTok{data }\OtherTok{\textless{}{-}}\NormalTok{ data }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{select}\NormalTok{(}\SpecialCharTok{{-}}\FunctionTok{c}\NormalTok{(X, State, County, fips))}
+\FunctionTok{head}\NormalTok{(data)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##   frac_coll_plus2010 foreign_share2010 med_hhinc2016 poor_share2010
+## 1         0.22199036       0.020154603      54052.80      0.1059177
+## 2         0.26071036       0.037591625      52003.09      0.1229422
+## 3         0.13349621       0.028143950      33114.85      0.2506308
+## 4         0.09924053       0.006859188      39846.45      0.1268499
+## 5         0.12633450       0.047343444      46361.12      0.1331379
+## 6         0.10972187       0.013493270      31304.78      0.2804486
+##   share_white2010 share_black2010 share_hisp2010 share_asian2010
+## 1       0.7724616      0.18134174     0.02400542    0.0078302799
+## 2       0.8350479      0.09752284     0.04384824    0.0059535136
+## 3       0.4675311      0.47190151     0.05051535    0.0036882064
+## 4       0.7502073      0.22282349     0.01771765    0.0007418721
+## 5       0.8888734      0.01500297     0.08070200    0.0018735955
+## 6       0.2191680      0.70221734     0.07119296    0.0017932489
+##   gsmn_math_g3_2013 rent_twobed2015 singleparent_share2010 traveltime15_2010
+## 1          2.759864        739.3654              0.2833759         0.2041625
+## 2          2.792510        816.8452              0.2778664         0.2753262
+## 3          1.600009        527.2908              0.4680706         0.3760492
+## 4          1.531674        604.2776              0.3201363         0.2526830
+## 5          2.815403        567.6959              0.2589052         0.1943438
+## 6          1.039439        266.0000              0.5778636         0.3921350
+##     emp2000 ln_wage_growth_hs_grad popdensity2010 ann_avg_job_growth_2004_2013
+## 1 0.6095865            -0.06331379       91.80268                  0.010145103
+## 2 0.5770263             0.03009291      114.64751                  0.012950056
+## 3 0.4532710             0.18936642       31.02921                 -0.020755908
+## 4 0.4942406            -0.02007263       36.80634                 -0.004644653
+## 5 0.5778096             0.09646260       88.90219                 -0.008120399
+## 6 0.3746639             0.36383346       17.52395                  0.026254078
+##   job_density_2013 turnout.rate
+## 1        40.719135    0.6618366
+## 2        50.085987    0.6529056
+## 3         9.230672    0.5402712
+## 4        12.875392    0.5456975
+## 5        36.175354    0.6419098
+## 6         6.954023    0.5908043
+\end{verbatim}
+
+We have no categorical variables. For each of our continuous variables,
+we summarize the number of missing values, the mean, median, standard
+deviation, and interquartile range.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{predictors }\OtherTok{\textless{}{-}} \FunctionTok{names}\NormalTok{(data)[}\FunctionTok{names}\NormalTok{(data) }\SpecialCharTok{!=} \StringTok{"turnout.rate"}\NormalTok{]}
+\NormalTok{summary\_table }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{()}
+
+\ControlFlowTok{for}\NormalTok{ (predictor }\ControlFlowTok{in}\NormalTok{ predictors) \{}
+\NormalTok{  column }\OtherTok{\textless{}{-}}\NormalTok{ data[[predictor]]}
+\NormalTok{  num\_non\_missing }\OtherTok{\textless{}{-}} \FunctionTok{sum}\NormalTok{(}\SpecialCharTok{!}\FunctionTok{is.na}\NormalTok{(column))}
+\NormalTok{  num\_missing }\OtherTok{\textless{}{-}} \FunctionTok{sum}\NormalTok{(}\FunctionTok{is.na}\NormalTok{(column))}
+\NormalTok{  mean\_var }\OtherTok{\textless{}{-}} \FunctionTok{mean}\NormalTok{(column, }\AttributeTok{na.rm =} \ConstantTok{TRUE}\NormalTok{)}
+\NormalTok{  median\_var }\OtherTok{\textless{}{-}} \FunctionTok{median}\NormalTok{(column, }\AttributeTok{na.rm =} \ConstantTok{TRUE}\NormalTok{)}
+\NormalTok{  sd\_var }\OtherTok{\textless{}{-}} \FunctionTok{sd}\NormalTok{(column, }\AttributeTok{na.rm =} \ConstantTok{TRUE}\NormalTok{)}
+\NormalTok{  iqr\_var }\OtherTok{\textless{}{-}} \FunctionTok{IQR}\NormalTok{(column, }\AttributeTok{na.rm =} \ConstantTok{TRUE}\NormalTok{)}
+
+\NormalTok{  summary\_table }\OtherTok{\textless{}{-}} \FunctionTok{rbind}\NormalTok{(summary\_table, }\FunctionTok{data.frame}\NormalTok{(}
+    \AttributeTok{Variable =}\NormalTok{ predictor,}
+    \AttributeTok{Non\_Missing =}\NormalTok{ num\_non\_missing,}
+    \AttributeTok{Missing =}\NormalTok{ num\_missing,}
+    \AttributeTok{Mean =} \FunctionTok{round}\NormalTok{(mean\_var, }\DecValTok{2}\NormalTok{),}
+    \AttributeTok{Median =} \FunctionTok{round}\NormalTok{(median\_var, }\DecValTok{2}\NormalTok{),}
+    \AttributeTok{SD =} \FunctionTok{round}\NormalTok{(sd\_var, }\DecValTok{2}\NormalTok{),}
+    \AttributeTok{IQR =} \FunctionTok{round}\NormalTok{(iqr\_var, }\DecValTok{2}\NormalTok{)}
+\NormalTok{  ))}
+\NormalTok{\}}
+
+\FunctionTok{kable}\NormalTok{(summary\_table)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.3412}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1412}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.0941}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1059}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1059}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1059}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1059}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Variable
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Non\_Missing
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Missing
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Mean
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Median
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+SD
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+IQR
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+frac\_coll\_plus2010 & 3220 & 43 & 0.19 & 0.17 & 0.09 & 0.09 \\
+foreign\_share2010 & 3142 & 121 & 0.04 & 0.02 & 0.06 & 0.04 \\
+med\_hhinc2016 & 3219 & 44 & 48259.87 & 46718.22 & 14039.43 &
+15020.15 \\
+poor\_share2010 & 3220 & 43 & 0.16 & 0.15 & 0.08 & 0.08 \\
+share\_white2010 & 3220 & 43 & 0.76 & 0.85 & 0.23 & 0.29 \\
+share\_black2010 & 3220 & 43 & 0.09 & 0.02 & 0.14 & 0.10 \\
+share\_hisp2010 & 3220 & 43 & 0.10 & 0.03 & 0.19 & 0.07 \\
+share\_asian2010 & 3199 & 64 & 0.01 & 0.00 & 0.02 & 0.01 \\
+gsmn\_math\_g3\_2013 & 3069 & 194 & 3.21 & 3.24 & 0.78 & 0.98 \\
+rent\_twobed2015 & 3143 & 120 & 684.90 & 637.72 & 208.21 & 196.55 \\
+singleparent\_share2010 & 3219 & 44 & 0.31 & 0.30 & 0.09 & 0.11 \\
+traveltime15\_2010 & 3220 & 43 & 0.40 & 0.38 & 0.14 & 0.19 \\
+emp2000 & 3142 & 121 & 0.57 & 0.58 & 0.08 & 0.10 \\
+ln\_wage\_growth\_hs\_grad & 2535 & 728 & 0.08 & 0.07 & 0.14 & 0.13 \\
+popdensity2010 & 3219 & 44 & 286.81 & 46.87 & 1772.48 & 111.93 \\
+ann\_avg\_job\_growth\_2004\_2013 & 3214 & 49 & 0.00 & 0.00 & 0.02 &
+0.02 \\
+job\_density\_2013 & 3217 & 46 & 129.48 & 19.23 & 855.52 & 48.72 \\
+\end{longtable}
+
+We also check that our hypothesis that the turnout rate can be predicted
+from county demographics is reasonable by fitting a linear regression
+model.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{lm\_model }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(turnout.rate }\SpecialCharTok{\textasciitilde{}}\NormalTok{ ., }\AttributeTok{data =}\NormalTok{ data)}
+\FunctionTok{summary}\NormalTok{(lm\_model)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## Call:
+## lm(formula = turnout.rate ~ ., data = data)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.69711 -0.04665 -0.00173  0.04503  1.63048 
+## 
+## Coefficients:
+##                                Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)                   6.217e-01  4.487e-02  13.855  < 2e-16 ***
+## frac_coll_plus2010            2.512e-01  3.239e-02   7.754 1.32e-14 ***
+## foreign_share2010             3.695e-01  5.967e-02   6.193 6.97e-10 ***
+## med_hhinc2016                 4.473e-07  3.182e-07   1.406   0.1600    
+## poor_share2010               -5.593e-01  5.331e-02 -10.490  < 2e-16 ***
+## share_white2010               4.769e-03  3.098e-02   0.154   0.8777    
+## share_black2010               2.795e-02  3.008e-02   0.929   0.3530    
+## share_hisp2010               -1.667e-01  3.487e-02  -4.780 1.86e-06 ***
+## share_asian2010              -1.274e-01  1.112e-01  -1.145   0.2523    
+## gsmn_math_g3_2013            -1.736e-03  2.841e-03  -0.611   0.5413    
+## rent_twobed2015              -3.942e-05  1.800e-05  -2.190   0.0286 *  
+## singleparent_share2010       -6.541e-02  3.207e-02  -2.039   0.0415 *  
+## traveltime15_2010            -1.317e-03  1.527e-02  -0.086   0.9313    
+## emp2000                       1.639e-01  3.530e-02   4.642 3.64e-06 ***
+## ln_wage_growth_hs_grad       -3.243e-02  1.351e-02  -2.401   0.0164 *  
+## popdensity2010               -2.486e-06  6.192e-06  -0.402   0.6880    
+## ann_avg_job_growth_2004_2013 -6.911e-01  1.357e-01  -5.091 3.84e-07 ***
+## job_density_2013             -2.688e-06  1.274e-05  -0.211   0.8329    
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 0.08167 on 2320 degrees of freedom
+##   (925 observations deleted due to missingness)
+## Multiple R-squared:  0.3897, Adjusted R-squared:  0.3852 
+## F-statistic: 87.14 on 17 and 2320 DF,  p-value: < 2.2e-16
+\end{verbatim}
+
+\end{document}
