@@ -1,0 +1,96 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{parskip}
+\usepackage{hyperref}
+
+\begin{document}
+
+\begin{center}
+    \Large\textbf{Socioeconomic Determinants of County-Level Voter Turnout (2000-2020)}
+
+    \vspace{0.3cm}
+    \normalsize
+    Henry Wu \quad Yuen Ler Chow \quad John Rho
+
+    \vspace{0.2cm}
+    \small
+    November 15, 2024
+\end{center}
+
+\section*{Variables and Data Sources}
+We utilize demographic and economic data from Opportunity Insights combined with county-level voter turnout data (2000-2020) to identify key demographic predictors of voter turnout and analyze cross-county trends. Our voter turnout calculations use presidential election returns from the MIT Election Data and Science Lab\footnote{MIT Election Data and Science Lab, 2018, "County Presidential Election Returns 2000-2020", \url{https://doi.org/10.7910/DVN/VOQCHQ}, Harvard Dataverse, V13} combined with Census voting-age population estimates. Key variables include:
+\begin{itemize}\setlength{\itemsep}{0pt}
+    \item Dependent Variable: Voter turnout (voters/voting age population)
+    \item Economic Indicators: Household income, poverty rates, job growth
+    \item Demographics: Educational attainment, racial composition, foreign-born population
+    \item Geographic Factors: Population density, commute times
+    \item Social Indicators: Single-parent households, mail return rates
+\end{itemize}
+
+\section*{Planned Analyses}
+\begin{itemize}\setlength{\itemsep}{0pt}
+    \item Research Objectives
+          \begin{itemize}\setlength{\itemsep}{0pt}
+              \item Identify which demographic factors are the strongest predictors of voter turnout
+              \item Analyze cross-county trends and patterns in voter participation
+              \item Quantify the marginal effects of each socioeconomic factor on turnout
+          \end{itemize}
+    \item Exploratory Data Analysis
+          \begin{itemize}\setlength{\itemsep}{0pt}
+              \item Test for multicollinearity using VIF
+              \item Examine temporal trends and spatial patterns
+              \item Assess distributional properties of variables
+          \end{itemize}
+    \item Model Development
+          \begin{itemize}\setlength{\itemsep}{0pt}
+              \item Primary: Beta regression (suitable for [0,1] bounded dependent variable)
+              \item Alternative: Fractional logistic regression
+              \item Panel data methods to leverage temporal dimension
+              \item Calculation of average marginal effects for key predictors
+              \item Cross-validation to assess predictive power of demographic variables
+          \end{itemize}
+\end{itemize}
+
+\section*{Implications}
+Understanding the socioeconomic determinants of voter turnout has important implications for both policy and democratic participation:
+\begin{itemize}\setlength{\itemsep}{0pt}
+    \item Policy Design
+          \begin{itemize}\setlength{\itemsep}{0pt}
+              \item Identify barriers to voting faced by specific demographic groups
+              \item Guide resource allocation for voter outreach and education programs
+              \item Inform placement of polling locations and early voting sites
+          \end{itemize}
+    \item Democratic Engagement
+          \begin{itemize}\setlength{\itemsep}{0pt}
+              \item Better understand patterns of political representation across communities
+              \item Develop targeted strategies to increase civic participation
+              \item Address systemic inequalities in electoral participation
+          \end{itemize}
+    \item Research Contribution
+          \begin{itemize}\setlength{\itemsep}{0pt}
+              \item Provide updated evidence on turnout determinants using recent data
+              \item Establish causal relationships between socioeconomic factors and voting behavior
+              \item Create predictive models for identifying low-turnout communities
+          \end{itemize}
+\end{itemize}
+
+\section*{Challenges}
+\begin{itemize}\setlength{\itemsep}{0pt}
+    \item Calculating accurate voter turnout denominators required extensive processing of Census data to determine voting-age population
+    \item Temporal alignment of various data sources spanning different years
+    \item Managing potential spatial autocorrelation in county-level data
+    \item Handling missing data and ensuring consistent geographic definitions over time
+\end{itemize}
+
+\section*{Data Dictionary}
+Key variables from Opportunity Insights\footnote{Chetty, R., Friedman, J. N., Hendren, N., Jones, M. R., \& Porter, S. R. (2018). The Opportunity Atlas: Mapping the Childhood Roots of Social Mobility [Data set]. Opportunity Insights. https://opportunityinsights.org/data/}:
+\begin{itemize}\setlength{\itemsep}{0pt}
+    \item Educational: College degree attainment (frac\_coll\_plus2010), 3rd grade math scores (gsmn\_math\_g3\_2013)
+    \item Demographics: Foreign-born share, racial composition (2010)
+    \item Economic: Median household income (2016), poverty rates, employment, wage growth
+    \item Housing: Two-bedroom rent (2015)
+    \item Geographic: Population density, job density (2013)
+    \item Social: Single parent households, commute times (2010)
+\end{itemize}
+
+\end{document}
