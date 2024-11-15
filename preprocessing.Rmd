@@ -1,0 +1,99 @@
+---
+title: "Preprocessing"
+output:
+  html_document:
+    df_print: paged
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r setup}
+rm(list = ls())
+require(readr)
+require(tidyr)
+require(dplyr)
+```
+
+```{r fips}
+state_fips <- read.table('data/raw/state_fips.txt', sep = '|', header = T)
+county_fips <- read.table('data/raw/county_fips.txt', sep = '|', quote = '', header = T)
+county_fips$fips <- 1000 * county_fips$STATEFP + county_fips$COUNTYFP
+fips <- left_join(county_fips, state_fips, by = c('STATE', 'STATEFP'))
+fips
+```
+
+```{r voting.eligible.population}
+population <- read.csv('data/raw/voting_eligible_population.csv', col.names = c('County', 'MaleAdultNative', 'MaleAdultNaturalized', 'FemaleAdultNative', 'FemaleAdultNaturalized'))
+population[, 2:5] <- apply(population[, 2:5], 2, parse_number)
+population$Population <- apply(population[, 2:5], 1, sum)
+for (i in rownames(population)) {
+  if (is.na(population[i, 'Population'])) {
+    population[i, 'Population'] <- population[as.character(as.numeric(i) + 1), 'Population']
+  }
+}
+population <- population %>%
+  subset(County != population[2, 'County']) %>%
+  separate_wider_delim(County, ', ', names = c('County', 'State'))
+
+#left join (various territories are removed)
+population <- left_join(population, fips, by = c('County' = 'COUNTYNAME', 'State' = 'STATE_NAME'))
+population
+```
+
+```{r returns}
+returns <- read.csv('data/raw/countypres_2000-2020.csv') %>%
+  subset(year == 2020) %>%
+  group_by(county_fips, county_name, state) %>%
+  summarize(totalvotes = mean(totalvotes))
+colnames(returns)[1] <- 'fips'
+returns
+```
+
+```{r turnout.rate}
+# problems: Alaska, Kalawao County (Hawaii), Puerto Rico (can't vote?)
+returns <- full_join(returns, population, by = 'fips')
+returns$turnout.rate <- returns$totalvotes / returns$Population
+returns
+subset(returns, is.na(Population))
+subset(returns, is.na(totalvotes))
+```
+
+```{r characteristics}
+characteristics <- read.csv('data/raw/cty_covariates.csv')
+characteristics$fips <- 1000 * characteristics$state + characteristics$county
+characteristics
+```
+
+```{r merge.data}
+data <- full_join(characteristics, returns, by = 'fips') %>%
+  select(
+    State,
+    County,
+    fips,
+    frac_coll_plus2010,
+    foreign_share2010,
+    med_hhinc2016,
+    poor_share2010,
+    share_white2010,
+    share_black2010,
+    share_hisp2010,
+    share_asian2010,
+    gsmn_math_g3_2013,
+    rent_twobed2015,
+    singleparent_share2010,
+    traveltime15_2010,
+    emp2000,
+    ln_wage_growth_hs_grad,
+    popdensity2010,
+    ann_avg_job_growth_2004_2013,
+    job_density_2013,
+    turnout.rate
+  )
+data
+subset(data, is.na(turnout.rate))
+subset(data, is.na(State))
+
+write.csv(data, 'data/processed/data.csv')
+```
