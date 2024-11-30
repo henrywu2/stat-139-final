@@ -1,0 +1,125 @@
+---
+title: "Preprocessing"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, message = F}
+rm(list = ls())
+require(readr)
+require(tidyr)
+require(dplyr)
+```
+
+# State and County FIPS Codes
+```{r fips}
+state_fips <- read.table('../data/raw/state_fips.txt', sep = '|', header = T)
+county_fips <- read.table('../data/raw/county_fips.txt', sep = '|', quote = '', header = T)
+county_fips$fips <- 1000 * county_fips$STATEFP + county_fips$COUNTYFP
+fips <- left_join(county_fips, state_fips, by = c('STATE', 'STATEFP'))
+fips
+```
+
+# Voting Eligible Population by County
+```{r voting.eligible.population}
+population <- read.csv('../data/raw/voting_eligible_population.csv', col.names = c('County', 'MaleAdultNative', 'MaleAdultNaturalized', 'FemaleAdultNative', 'FemaleAdultNaturalized'))
+population[, 2:5] <- apply(population[, 2:5], 2, parse_number)
+population$Population <- apply(population[, 2:5], 1, sum)
+for (i in rownames(population)) {
+  if (is.na(population[i, 'Population'])) {
+    population[i, 'Population'] <- population[as.character(as.numeric(i) + 1), 'Population']
+  }
+}
+population <- population %>%
+  subset(County != population[2, 'County']) %>%
+  separate_wider_delim(County, ', ', names = c('County', 'State'))
+
+# Left join to get FIPS codes (various territories are not included)
+population <- left_join(population, fips, by = c('County' = 'COUNTYNAME', 'State' = 'STATE_NAME'))
+
+population
+```
+
+# Voting Returns
+```{r returns}
+# Removing Alaska, Federal Precinct, RI (seems to be overseas ballots or something), and Kansas City, MO (seems to be already included in other counties)
+returns <- read.csv('../data/raw/countypres_2000-2020.csv') %>%
+  subset(year == 2020 & state != 'ALASKA' & !(county_name %in% c('KANSAS CITY', 'FEDERAL PRECINCT'))) %>%
+  group_by(county_fips, county_name, state) %>%
+  summarize(totalvotes = mean(totalvotes))
+colnames(returns)[1] <- 'fips'
+
+# Alaska's voting results are by voting district, not county equivalent, so Alaska data is pulled from a different source
+alaska <- read.csv('../data/raw/alaska.csv') %>%
+  left_join(fips, by = c('county_name' = 'COUNTYNAME'))
+
+returns <- rbind(returns, alaska) %>%
+  select(fips, county_name, state, totalvotes)
+
+returns
+```
+
+# Calculating Voter Turnout Rate by County
+```{r turnout.rate}
+# Left join removes Kalawao County, Hawaii (no election results) and Puerto Rico (can't vote in presidential election)
+returns <- left_join(returns, population, by = 'fips')
+
+# Valdez-Cordova Census Area (FIPS 2261, only in `characteristics`) was split into Chugach Census Area (FIPS 2063, only in `returns`) and Copper River Census Area (FIPS 2066, only in `returns`) - they will be recombined here
+valdez.cordova <- subset(returns, fips %in% c(2063, 2066))
+returns <- rbind(returns, data.frame(
+  fips = 2261,
+  State = 'Alaska',
+  County = 'Valdez-Cordova Census Area',
+  totalvotes = sum(valdez.cordova$totalvotes),
+  Population = sum(valdez.cordova$Population)
+)) %>%
+  subset(!(fips %in% c(2063, 2066)))
+
+returns$turnout.rate <- returns$totalvotes / returns$Population
+
+returns
+```
+
+```{r characteristics}
+# Wade-Hampton Census Area (FIPS 2270, only in `characteristics`) is now Kusilvak Census Area (FIPS 2158, in `characteristics` and `returns`) - FIPS changed accordingly and data is merged between entries
+# Kalawao County, Hawaii (FIPS 15005) and Puerto Rican municipios (FIPS 72xxx) are in `characteristics` but not in `returns`, so we drop them
+characteristics <- read.csv('../data/raw/cty_covariates.csv')
+characteristics <- characteristics %>%
+  mutate(
+    fips = case_when(state == 2 & county == 270 ~ 2158, .default = 1000 * state + county),
+    ann_avg_job_growth_2004_2013 = case_when(state == 2 & county == 270 ~ subset(characteristics, state == 2 & county == 158)$ann_avg_job_growth_2004_2013, .default = ann_avg_job_growth_2004_2013)
+  ) %>%
+  subset(fips != 15005 & fips < 72000 & !(state == 2 & county == 158))
+characteristics
+```
+
+```{r merge.data}
+data <- full_join(characteristics, returns, by = 'fips') %>%
+  select(
+    State,
+    County,
+    fips,
+    frac_coll_plus2010,
+    foreign_share2010,
+    med_hhinc2016,
+    poor_share2010,
+    share_white2010,
+    share_black2010,
+    share_hisp2010,
+    share_asian2010,
+    gsmn_math_g3_2013,
+    rent_twobed2015,
+    singleparent_share2010,
+    traveltime15_2010,
+    emp2000,
+    ln_wage_growth_hs_grad,
+    popdensity2010,
+    ann_avg_job_growth_2004_2013,
+    job_density_2013,
+    turnout.rate
+  )
+
+data
+write.csv(data, '../data/processed/data.csv', row.names = F)
+```

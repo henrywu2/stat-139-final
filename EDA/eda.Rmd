@@ -1,0 +1,100 @@
+---
+title: "Socioeconomic Determinants of 2020 U.S. Presidential Election County-Level Voter Turnout"
+subtitle: "Exploratory Data Analysis"
+author: "Yuen Ler Chow, John Rho, and Henry Wu"
+output: pdf_document
+---
+
+# Data Description
+
+Henry will work on this section
+https://opportunityinsights.org/wp-content/uploads/2019/07/Codebook-for-Table-10.pdf
+
+# Setup
+```{r setup, message = F}
+rm(list = ls())
+require(readr)
+require(tidyr)
+require(dplyr)
+require(knitr)
+```
+
+```{r}
+data <- read.csv("../data/processed/data.csv")
+head(data)
+```
+
+# Descriptive Statistics
+
+We have no categorical variables. For each of our continuous variables, we summarize the number of missing values, the mean, median, standard deviation, interquartile range, minimum value, and maximum value.
+
+```{r}
+predictors <- names(data)[!(names(data) %in% c('State', 'County', 'fips'))]
+summary_table <- data.frame()
+
+for (predictor in predictors) {
+  column <- data[[predictor]]
+  num_missing <- sum(is.na(column))
+  mean_var <- mean(column, na.rm = TRUE)
+  median_var <- median(column, na.rm = TRUE)
+  sd_var <- sd(column, na.rm = TRUE)
+  iqr_var <- IQR(column, na.rm = TRUE)
+  min_var <- min(column, na.rm = TRUE)
+  max_var <- max(column, na.rm = TRUE)
+
+  summary_table <- rbind(summary_table, data.frame(
+    Variable = predictor,
+    Missing = num_missing,
+    Mean = round(mean_var, 2),
+    Median = round(median_var, 2),
+    SD = round(sd_var, 2),
+    IQR = round(iqr_var, 2),
+    Min = round(min_var, 2),
+    Max = round(max_var, 2)
+  ))
+}
+
+kable(summary_table)
+
+dim(data)
+```
+## Missingness
+
+Most variables have either zero or a small fraction of observations missing. The exception is `ln_wage_growth_hs_grad`, which has 21.8% of its observations missing. To handle the missing data, we drop the `ln_wage_growth_hs_grad` variable altogether and drop the counties that have missing data in at least one of the remaining variables.
+```{r missingness}
+data <- select(data, -ln_wage_growth_hs_grad)
+data <- subset(data, apply(data, 1, FUN = function(x) {!any(is.na(x))}))
+dim(data)
+```
+
+# Exploratory Graphs
+
+## Turnout Rate
+```{r turnout}
+data <- data %>%
+  mutate(turnout.rate = case_when(
+    turnout.rate > 1 ~ 1,
+    .default = turnout.rate
+  ))
+hist(data$turnout.rate, main = 'Histogram of Turnout Rate', xlab = 'Turnout Rate')
+```
+
+## Math Scores
+```{r math}
+data <- data %>%
+  mutate(gsmn_math_g3_2013 = case_when(
+    gsmn_math_g3_2013 < 0 ~ 0,
+    .default = gsmn_math_g3_2013
+  ))
+data[order(data$gsmn_math_g3_2013, decreasing = F),]
+hist(data$gsmn_math_g3_2013, main = 'Histogram of 2013 Mean 3rd Grade Math Scores', xlab = 'Mean Grade')
+```
+
+# Preliminary Model
+
+We also check that our hypothesis that the turnout rate can be predicted from county demographics is reasonable by fitting a linear regression model.
+```{r model}
+lm_model <- lm(turnout.rate ~ . - (State + County + fips), data = data)
+summary(lm_model)
+plot(lm_model, c(1, 2))
+```
