@@ -102,7 +102,7 @@ hist(data$gsmn_math_g3_2013, main = 'Histogram of 2013 Mean 3rd Grade Math Score
 
 ## Poverty Rate and Turnout Rate
 
-To see the relationship between voter turnout and one predictor variable hypothesized to be associated with it, we plot the 2010 poverty rate aainst the 2020 turnout rate for each county. There is a strong negative trend in the plot.
+To see the relationship between voter turnout and one predictor variable hypothesized to be associated with it, we plot the 2010 poverty rate against the 2020 turnout rate for each county. There is a strong negative trend in the plot.
 
 ```{r poverty}
 plot(data$poor_share2010, data$turnout.rate, main = 'Turnout Rate vs. Poverty Rate', xlab = '2010 Poverty Rate', ylab = '2020 Turnout Rate')
@@ -141,15 +141,14 @@ predicting voter turnout rates.
 ```{r diagnostics}
 plot(lm_model, c(1, 2))
 ```
-# Regression Diagnostic Interpretation
 
-# Existence of Variance
+## Existence of Variance
 The spread of residuals in the plots demonstrates clear variation in our dependent 
 variable, confirming the existence of variance. The residuals show a reasonable 
 spread around zero, with most falling between -0.2 and 0.2, indicating that our model 
 has captured meaningful variation in the data while maintaining reasonable error terms.
 
-# Linearity
+## Linearity
 The Residuals vs Fitted plot reveals a relatively flat red line hovering around zero, 
 suggesting the linearity assumption is reasonably met. While there is some pattern in 
 the spread of residuals, the scatter appears generally random. The plot identifies 
@@ -157,14 +156,14 @@ points 43, 2391, and 413 as potential outliers that warrant further investigatio
 Overall, the linearity assumption appears to be satisfied, though with some potential 
 concerns that might need additional examination.
 
-# Independence
+## Independence
 Independence cannot be directly assessed from these diagnostic plots alone. Given that 
 this analysis uses county-level data, there is likely spatial correlation present 
 between neighboring counties. Additional specific tests would be necessary to evaluate 
 this assumption, such as Moran's I for spatial autocorrelation. We hope to ask a Teaching Fellow about further
 analysis regarding this possible violation of our assumptions.
 
-# Homogeneity (Homoscedasticity)
+## Homogeneity (Homoscedasticity)
 Examining the Residuals vs Fitted plot, we observe a fanning pattern where the spread 
 of residuals is wider in the middle range of fitted values. This pattern suggests the 
 presence of heteroscedasticity, meaning the variance of residuals is not constant 
@@ -172,7 +171,7 @@ across all fitted values. This violation of the homoscedasticity assumption sugg
 we should consider using robust standard errors or weighted least squares estimation 
 methods to address this issue.
 
-# Normality
+## Normality
 The Q-Q plot provides a visual assessment of normality by comparing the standardized 
 residuals against theoretical normal quantiles. The majority of points follow the 
 diagonal line, suggesting approximate normality in the central region of the 
