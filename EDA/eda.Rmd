@@ -3,12 +3,14 @@ title: "Socioeconomic Determinants of 2020 U.S. Presidential Election County-Lev
 subtitle: "Exploratory Data Analysis"
 author: "Yuen Ler Chow, John Rho, and Henry Wu"
 output: pdf_document
+urlcolor: blue
 ---
 
 # Data Description
 
-Henry will work on this section
-https://opportunityinsights.org/wp-content/uploads/2019/07/Codebook-for-Table-10.pdf
+There are a few different data sources joined together to make this dataset. The turnout rate data is calculating by dividing the voter turnout for the 2020 presidential election in each county (from the [MIT Election Lab](https://doi.org/10.7910/DVN/VOQCHQ)) by the voting-eligible population (U.S. citizens age 18 and up) according to the [2020 5-year American Community Survey](https://data.census.gov/table/ACSDT5Y2020.B05003?t=Citizenship&g=010XX00US$0500000&y=2020&d=ACS%205-Year%20Estimates%20Detailed%20Tables&moe=false&tp=true) released by the U.S. Census Bureau. The resulting turnout rate should be a proportion between 0 and 1. The exception for the voter turnout data is Alaska, whose voter turnout data is organized by election districts instead of borough and Census areas (Alaska's county equivalents). To have this data be consistent with the predictor variables, I got estimates for Alaska voter turnout data by borough and Census area from a [blog post](https://rrhelections.com/index.php/2021/04/13/alaska-presidential-results-by-county-equivalent-1960-2020/9/).
+
+The [predictors](https://opportunityinsights.org/wp-content/uploads/2024/07/Table_8_county_covariates.csv) (county-level demographic and socioeconomic characteristics) are from Opportunity Insights, a Harvard-based research lab studying economic opportunity in the United States. Descriptions of the variables can be found [here](https://opportunityinsights.org/wp-content/uploads/2019/07/Codebook-for-Table-10.pdf). Datasets for FIPS [state](https://www2.census.gov/geo/docs/reference/codes2020/national_state2020.txt) and [county](https://www2.census.gov/geo/docs/reference/codes2020/national_county2020.txt) codes are also used to merge the data sources.
 
 # Setup
 ```{r setup, message = F}
@@ -86,7 +88,6 @@ data <- data %>%
     gsmn_math_g3_2013 < 0 ~ 0,
     .default = gsmn_math_g3_2013
   ))
-data[order(data$gsmn_math_g3_2013, decreasing = F),]
 hist(data$gsmn_math_g3_2013, main = 'Histogram of 2013 Mean 3rd Grade Math Scores', xlab = 'Mean Grade')
 ```
 
