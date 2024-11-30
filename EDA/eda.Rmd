@@ -63,6 +63,7 @@ dim(data)
 ## Missingness
 
 Most variables have either zero or a small fraction of observations missing. The exception is `ln_wage_growth_hs_grad`, which has 21.8% of its observations missing. To handle the missing data, we drop the `ln_wage_growth_hs_grad` variable altogether and drop the counties that have missing data in at least one of the remaining variables.
+
 ```{r missingness}
 data <- select(data, -ln_wage_growth_hs_grad)
 data <- subset(data, apply(data, 1, FUN = function(x) {!any(is.na(x))}))
@@ -72,7 +73,11 @@ dim(data)
 # Exploratory Graphs
 
 ## Turnout Rate
+
+There is one invalid value for turnout rate greater than 1, so we set it equal to 1. The histogram shows that the turnout rates are approximately normally distributed.
+
 ```{r turnout}
+subset(data, turnout.rate > 1)[c('State', 'County', 'turnout.rate')]
 data <- data %>%
   mutate(turnout.rate = case_when(
     turnout.rate > 1 ~ 1,
@@ -82,7 +87,11 @@ hist(data$turnout.rate, main = 'Histogram of Turnout Rate', xlab = 'Turnout Rate
 ```
 
 ## Math Scores
+
+There are a few invalid values for mean math scores less than 0, so we set them equal to 0. The histogram shows that mean math scores are approximately normally distributed.
+
 ```{r math}
+subset(data, gsmn_math_g3_2013 < 0)[c('State', 'County', 'gsmn_math_g3_2013')]
 data <- data %>%
   mutate(gsmn_math_g3_2013 = case_when(
     gsmn_math_g3_2013 < 0 ~ 0,
@@ -91,11 +100,25 @@ data <- data %>%
 hist(data$gsmn_math_g3_2013, main = 'Histogram of 2013 Mean 3rd Grade Math Scores', xlab = 'Mean Grade')
 ```
 
+## Poverty Rate and Turnout Rate
+
+To see the relationship between voter turnout and one predictor variable hypothesized to be associated with it, we plot the 2010 poverty rate aainst the 2020 turnout rate for each county. There is a strong negative trend in the plot.
+
+```{r poverty}
+plot(data$poor_share2010, data$turnout.rate, main = 'Turnout Rate vs. Poverty Rate', xlab = '2010 Poverty Rate', ylab = '2020 Turnout Rate')
+```
+
 # Preliminary Model
 
 We also check that our hypothesis that the turnout rate can be predicted from county demographics is reasonable by fitting a linear regression model.
+
 ```{r model}
 lm_model <- lm(turnout.rate ~ . - (State + County + fips), data = data)
 summary(lm_model)
+```
+
+# Diagnostics
+
+```{r diagnostics}
 plot(lm_model, c(1, 2))
 ```
