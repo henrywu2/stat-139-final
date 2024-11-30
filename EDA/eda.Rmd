@@ -117,8 +117,75 @@ lm_model <- lm(turnout.rate ~ . - (State + County + fips), data = data)
 summary(lm_model)
 ```
 
+The linear regression model examining voter turnout demonstrates several significant 
+relationships while controlling for State, County, and FIPS fixed effects. The model 
+explains approximately 44\% of the variance in turnout rates (Adjusted R-squared = $0.4386$) 
+and is highly significant (F = $147.4$, $p < 2.2 \times 10^{-16}$). Education emerges as a strong 
+positive predictor, with a one-unit increase in college education associated with a 
+$0.371$ increase in turnout ($p < 0.001$). Other significant positive predictors include 
+foreign-born share ($\beta = 0.110$, $p < 0.05$), white population share ($\beta = 0.042$, $p < 0.05$), 
+black population share ($\beta = 0.059$, $p < 0.01$), and employment ($\beta = 0.137$, $p < 0.001$). 
+Conversely, several factors show significant negative associations with turnout: 
+poverty rate exhibits a strong negative effect ($\beta = -0.576$, $p < 0.001$), as do Asian 
+population share ($\beta = -0.506$, $p < 0.001$), single parent share ($\beta = -0.062$, $p < 0.05$), 
+travel time ($\beta = -0.043$, $p < 0.001$), and job growth ($\beta = -0.707$, $p < 0.001$). 
+Notably, several variables including median household income, Hispanic population 
+share, math scores, two-bedroom rent, population density, and job density did not 
+show significant relationships with turnout ($p > 0.05$). The residual standard error 
+of $0.073$ on $2982$ degrees of freedom suggests relatively precise estimates, while the 
+overall model significance ($p < 2.2 \times 10^{-16}$) indicates strong explanatory power in 
+predicting voter turnout rates.
+
 # Diagnostics
 
 ```{r diagnostics}
 plot(lm_model, c(1, 2))
 ```
+# Regression Diagnostic Interpretation
+
+# Existence of Variance
+The spread of residuals in the plots demonstrates clear variation in our dependent 
+variable, confirming the existence of variance. The residuals show a reasonable 
+spread around zero, with most falling between -0.2 and 0.2, indicating that our model 
+has captured meaningful variation in the data while maintaining reasonable error terms.
+
+# Linearity
+The Residuals vs Fitted plot reveals a relatively flat red line hovering around zero, 
+suggesting the linearity assumption is reasonably met. While there is some pattern in 
+the spread of residuals, the scatter appears generally random. The plot identifies 
+points 43, 2391, and 413 as potential outliers that warrant further investigation. 
+Overall, the linearity assumption appears to be satisfied, though with some potential 
+concerns that might need additional examination.
+
+# Independence
+Independence cannot be directly assessed from these diagnostic plots alone. Given that 
+this analysis uses county-level data, there is likely spatial correlation present 
+between neighboring counties. Additional specific tests would be necessary to evaluate 
+this assumption, such as Moran's I for spatial autocorrelation. We hope to ask a Teaching Fellow about further
+analysis regarding this possible violation of our assumptions.
+
+# Homogeneity (Homoscedasticity)
+Examining the Residuals vs Fitted plot, we observe a fanning pattern where the spread 
+of residuals is wider in the middle range of fitted values. This pattern suggests the 
+presence of heteroscedasticity, meaning the variance of residuals is not constant 
+across all fitted values. This violation of the homoscedasticity assumption suggests 
+we should consider using robust standard errors or weighted least squares estimation 
+methods to address this issue.
+
+# Normality
+The Q-Q plot provides a visual assessment of normality by comparing the standardized 
+residuals against theoretical normal quantiles. The majority of points follow the 
+diagonal line, suggesting approximate normality in the central region of the 
+distribution. However, we observe some deviation at both tails, particularly with 
+point 413 showing as a significant lower outlier and points near 43 & 2391 deviating at 
+the upper tail. Given our large sample size, the Central Limit Theorem suggests that 
+these deviations from normality are less concerning for inference purposes.
+
+# Overall Recommendations and Next Steps
+Based on these diagnostics, several actions are recommended. First, investigate points 
+413, 43, and 2391 for potential data issues or substantive influence. Second, 
+implement robust standard errors to address the observed possible heteroscedasticity. Third, 
+consider spatial correlation adjustments given the county-level nature of the data. 
+
+Regarding the model, we will test interaction terms to see how different factors affect each other. 
+We will also observe how applying regularization impacts our regression.
