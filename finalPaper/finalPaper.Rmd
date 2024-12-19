@@ -27,7 +27,22 @@ require(pheatmap)
 require(ggplot2) # maybe remove
 require(huxtable)
 options("huxtable.long_minus" = T)
+if (!require("Matrix")) install.packages("Matrix", repos = "https://cloud.r-project.org")
+if (!require("glmnet")) install.packages("glmnet", repos = "https://cloud.r-project.org")
+library(Matrix)
+library(glmnet)
+library(pheatmap)
+
+options(repos = c(CRAN = "https://cloud.r-project.org"))
 ```
+
+# Data Description
+
+The dataset combines voter turnout data from the [MIT Election Lab](https://doi.org/10.7910/DVN/VOQCHQ), U.S. Census Bureau’s [2020 ACS 5-year estimates](https://data.census.gov/table/ACSDT5Y2020.B05003), and socioeconomic and demographic predictors from [Opportunity Insights](https://opportunityinsights.org/). Voter turnout is computed as the total votes cast in the 2020 U.S. presidential election divided by the voting-eligible population (U.S. citizens aged 18 or above). For Alaska, voter turnout estimates are derived from [this blog post](https://rrhelections.com/index.php/2021/04/13/alaska-presidential-results-by-county-equivalent-1960-2020/9/).
+
+Predictor variables include a wide variety of socioeconomic and demographic measures at the county level, such as education levels, poverty rates, median household income, and racial/ethnic population shares. More details and data dictionary information are available at the Opportunity Insights website. FIPS codes from the U.S. Census Bureau are used to merge data sources.
+
+# Data Loading and Cleaning
 
 ## Descriptive Statistics
 
@@ -184,16 +199,9 @@ plot(lm_model, c(1, 2))
 * **Homogeneity (Homoscedasticity):** Examining the Residuals vs Fitted plot, we observe a fanning pattern where the spread of residuals is wider in the middle range of fitted values. This pattern suggests the presence of heteroscedasticity, meaning the variance of residuals is not constant across all fitted values. This violation of the homoscedasticity assumption suggests we should consider using robust standard errors or weighted least squares estimation methods to address this issue.
 * **Normality:** The Q-Q plot provides a visual assessment of normality by comparing the standardized residuals against theoretical normal quantiles. The majority of points follow the  diagonal line, suggesting approximate normality in the central region of the distribution. However, we observe some deviation at both tails, particularly with point 413 showing as a significant lower outlier and points near 43 & 2391 deviating at the upper tail. Given our large sample size, the Central Limit Theorem suggests that these deviations from normality are less concerning for inference purposes.
 
-<!-- ## Overall Recommendations and Next Steps -->
-<!-- Based on these diagnostics, several actions are recommended. First, investigate points  -->
-<!-- 413, 43, and 2391 for potential data issues or substantive influence. Second,  -->
-<!-- implement robust standard errors to address the observed possible heteroscedasticity. Third,  -->
-<!-- consider spatial correlation adjustments given the county-level nature of the data.  -->
+# Introduction of LASSO Regularization
 
-<!-- Regarding the model, we will test interaction terms to see how different factors affect each other.  -->
-<!-- We will also observe how applying regularization impacts our regression. -->
-
-## Regularization
+To address potential overfitting and identify the most influential variables, we employ LASSO regularization, which introduces a penalty that can shrink some coefficients to zero.
 
 ```{r, echo = F}
 
@@ -206,32 +214,29 @@ y <- data$turnout.rate
 
 set.seed(82)
 cv.lasso <- cv.glmnet(x, y, alpha = 1, nfolds = 10)
-
 best_lambda <- cv.lasso$lambda.min
 
 lasso_model <- glmnet(x, y, alpha = 1, lambda = best_lambda)
 coef(lasso_model)
-
 ```
 
-```{r, echo = F}
-cols <- rainbow(ncol(x))
+By selecting `lambda.min` through cross-validation, we identify a penalty level that balances predictive accuracy and model complexity. This approach ensures we do not overfit by including too many small-effect predictors.
 
+```{r, fig.width=7, fig.height=5}
+cols <- rainbow(ncol(x))
 plot(cv.lasso$glmnet.fit, xvar="lambda", label=TRUE, col=cols, lwd=2, cex.lab=1.2, cex.axis=1.2)
 abline(v = log(best_lambda), lty=2, col="red", lwd=2)
 title("LASSO Coefficients as Function of Regularization Strength", cex.main=1.2)
-
 legend("topright", inset=c(-0.1,0), legend = colnames(x), col = cols, lty=1, lwd=2, cex=0.6, xpd=TRUE)
-
 ```
 
-```{r, echo = F}
-coeffs <- coef(lasso_model)
+As `log(lambda)` decreases (moving right), regularization strength weakens, and more predictors enter the model with non-zero coefficients. The vertical red line shows the chosen lambda. Predictors that remain at zero near the vertical line are dropped from the final model. This graph visually demonstrates which variables are “important enough” to survive the LASSO penalty.
 
+```{r}
+coeffs <- coef(lasso_model)
 coeffs_df <- as.data.frame(as.matrix(coeffs))
 colnames(coeffs_df) <- "Coefficient"
 coeffs_df$Predictor <- rownames(coeffs_df)
-
 coeffs_df <- subset(coeffs_df, Predictor != "(Intercept)")
 
 kept <- coeffs_df$Predictor[coeffs_df$Coefficient != 0]
@@ -242,25 +247,29 @@ print(kept)
 
 cat("\nPredictors removed by LASSO (coefficients = 0):\n")
 print(not_kept)
-
 ```
 
-Running the LASSO regularization found an optimal lambda that zeroed out the features gsmn_math_g3_2013 as well as rent_twobed2015. This seems to align with our preliminary analysis that showed that both of these predictors had p-values that were far above our p=0.05 threshold, both at p>0.60.
+LASSO retained most predictors but excluded `gsmn_math_g3_2013` and `rent_twobed2015`. This aligns with earlier findings that these variables were not statistically significant in the preliminary linear model.
 
-```{r, echo = F}
-# Compute correlation matrix of predictors
+# Correlation Structure
+
+Examining correlations among predictors helps identify potential multicollinearity and structure in the data.
+
+```{r, echo = F, fig.width=8, fig.height=8}
 cor_matrix <- cor(data[, predictors], use = "pairwise.complete.obs")
-
-# Create a heatmap of the correlation matrix
 pheatmap(cor_matrix, 
      cluster_rows = TRUE, 
      cluster_cols = TRUE, 
      color = colorRampPalette(c("navy", "white", "firebrick3"))(50),
      main = "Heatmap of Predictor Correlations",
      height = 30)
-
 ```
 
+The heatmap shows groups of variables that cluster together, indicating underlying socioeconomic dimensions (e.g., poverty and race-related measures clustered together, economic growth and density measures in another cluster). These clusters may reflect underlying latent factors that shape voter turnout.
+
+# Interaction Terms and Revised Models
+
+We test whether adding an interaction term between education and poverty (`frac_coll_plus2010:poor_share2010`) improves model performance.
 
 ```{r, echo = F}
 model_reduced <- lm(turnout.rate ~ . - State - County - fips - gsmn_math_g3_2013 - rent_twobed2015, data = data)
@@ -283,7 +292,6 @@ model_post_lasso <- lm(
 )
 
 summary(model_post_lasso)
-
 ```
 
 # Discussion and Conclusion

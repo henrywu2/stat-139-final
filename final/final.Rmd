@@ -1,0 +1,233 @@
+---
+title: "Socioeconomic Determinants of 2020 U.S. Presidential Election County-Level Voter Turnout"
+subtitle: "Exploratory Data Analysis"
+author: "Yuen Ler Chow, John Rho, and Henry Wu"
+output: pdf_document
+urlcolor: blue
+---
+
+# Data Description
+
+There are a few different data sources joined together to make this dataset. The turnout rate data is calculating by dividing the voter turnout for the 2020 presidential election in each county (from the [MIT Election Lab](https://doi.org/10.7910/DVN/VOQCHQ)) by the voting-eligible population (U.S. citizens age 18 and up) according to the [2020 5-year American Community Survey](https://data.census.gov/table/ACSDT5Y2020.B05003?t=Citizenship&g=010XX00US$0500000&y=2020&d=ACS%205-Year%20Estimates%20Detailed%20Tables&moe=false&tp=true) released by the U.S. Census Bureau. The resulting turnout rate should be a proportion between 0 and 1. The exception for the voter turnout data is Alaska, whose voter turnout data is organized by election districts instead of borough and Census areas (Alaska's county equivalents). To have this data be consistent with the predictor variables, I got estimates for Alaska voter turnout data by borough and Census area from a [blog post](https://rrhelections.com/index.php/2021/04/13/alaska-presidential-results-by-county-equivalent-1960-2020/9/).
+
+The [predictors](https://opportunityinsights.org/wp-content/uploads/2024/07/Table_8_county_covariates.csv) (county-level demographic and socioeconomic characteristics) are from Opportunity Insights, a Harvard-based research lab studying economic opportunity in the United States. Descriptions of the variables can be found [here](https://opportunityinsights.org/wp-content/uploads/2019/07/Codebook-for-Table-10.pdf). Datasets for FIPS [state](https://www2.census.gov/geo/docs/reference/codes2020/national_state2020.txt) and [county](https://www2.census.gov/geo/docs/reference/codes2020/national_county2020.txt) codes are also used to merge the data sources.
+
+# Setup
+
+```{r setup, message = F}
+rm(list = ls())
+
+# Set working directory to the file location
+if (rstudioapi::isAvailable()) {
+  setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+} else {
+  setwd(getwd())
+}
+
+# Set CRAN mirror
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+
+# Install and load Matrix package first
+install.packages("Matrix")
+library(Matrix)
+
+# Required packages
+library(readr)
+library(tidyr)
+library(dplyr)
+library(knitr)
+library(glmnet)      # For LASSO
+library(corrplot)    # For correlation heatmaps
+library(caret)       # For train/test split
+library(lme4)        # For mixed effects models
+
+# If packages are not installed, install them first
+if (!require(caret)) install.packages("caret")
+if (!require(glmnet)) install.packages("glmnet")
+if (!require(corrplot)) install.packages("corrplot")
+if (!require(lme4)) install.packages("lme4")
+
+# Reinstall lme4 to ensure compatibility
+remove.packages("lme4")
+install.packages("lme4")
+library(lme4)
+
+set.seed(123)       # For reproducibility
+
+# Load and clean data
+data <- read.csv("../data/processed/data.csv")
+
+# Handle missing data first
+data <- select(data, -ln_wage_growth_hs_grad)
+data <- subset(data, apply(data, 1, FUN = function(x) {!any(is.na(x))}))
+
+# Now create train-test split with clean data
+index <- createDataPartition(data$turnout.rate, p = 0.8, list = FALSE)
+train_data <- data[index, ]
+test_data <- data[-index, ]
+
+# Descriptive Statistics
+predictors <- names(data)[!(names(data) %in% c('State', 'County', 'fips'))]
+summary_table <- data.frame()
+
+for (predictor in predictors) {
+  column <- data[[predictor]]
+  num_missing <- sum(is.na(column))
+  mean_var <- mean(column, na.rm = TRUE)
+  median_var <- median(column, na.rm = TRUE)
+  sd_var <- sd(column, na.rm = TRUE)
+  iqr_var <- IQR(column, na.rm = TRUE)
+  min_var <- min(column, na.rm = TRUE)
+  max_var <- max(column, na.rm = TRUE)
+
+  summary_table <- rbind(summary_table, data.frame(
+    Variable = predictor,
+    Missing = num_missing,
+    Mean = round(mean_var, 2),
+    Median = round(median_var, 2),
+    SD = round(sd_var, 2),
+    IQR = round(iqr_var, 2),
+    Min = round(min_var, 2),
+    Max = round(max_var, 2)
+  ))
+}
+
+# LASSO Regression
+X <- model.matrix(turnout.rate ~ . - (State + County + fips), data = train_data)[,-1]
+y <- train_data$turnout.rate
+
+# Fit LASSO
+cv_lasso <- cv.glmnet(X, y, alpha = 1)
+lasso_model <- glmnet(X, y, alpha = 1, lambda = cv_lasso$lambda.min)
+
+# Get important variables
+lasso_coef <- coef(lasso_model)
+important_vars <- rownames(lasso_coef)[which(abs(lasso_coef) > 0)][-1]
+print("Important variables selected by LASSO:")
+print(important_vars)
+```
+
+# Collinearity Analysis
+
+```{r}
+# Create correlation matrix
+numeric_vars <- select_if(train_data, is.numeric)
+cor_matrix <- cor(numeric_vars, use = "complete.obs")
+
+# Create correlation heatmap
+corrplot(cor_matrix, 
+         method = "color",
+         type = "upper",
+         tl.col = "black",
+         tl.srt = 45)
+
+# Check for high correlations
+high_cor <- which(abs(cor_matrix) > 0.7 & abs(cor_matrix) < 1, arr.ind = TRUE)
+high_cor_pairs <- data.frame(
+  var1 = rownames(cor_matrix)[high_cor[,1]],
+  var2 = colnames(cor_matrix)[high_cor[,2]],
+  correlation = cor_matrix[high_cor]
+)
+print("Highly correlated variable pairs:")
+print(high_cor_pairs)
+```
+
+# Exploratory Graphs
+
+## Turnout Rate
+
+There is one invalid value for turnout rate greater than 1, so we set it equal to 1. The histogram shows that the turnout rates are approximately normally distributed.
+
+```{r turnout}
+subset(data, turnout.rate > 1)[c('State', 'County', 'turnout.rate')]
+data <- data %>%
+  mutate(turnout.rate = case_when(
+    turnout.rate > 1 ~ 1,
+    .default = turnout.rate
+  ))
+hist(data$turnout.rate, main = 'Histogram of Turnout Rate', xlab = 'Turnout Rate')
+```
+
+## Math Scores
+
+There are a few invalid values for mean math scores less than 0, so we set them equal to 0. The histogram shows that mean math scores are approximately normally distributed.
+
+```{r math}
+subset(data, gsmn_math_g3_2013 < 0)[c('State', 'County', 'gsmn_math_g3_2013')]
+data <- data %>%
+  mutate(gsmn_math_g3_2013 = case_when(
+    gsmn_math_g3_2013 < 0 ~ 0,
+    .default = gsmn_math_g3_2013
+  ))
+hist(data$gsmn_math_g3_2013, main = 'Histogram of 2013 Mean 3rd Grade Math Scores', xlab = 'Mean Grade')
+```
+
+## Poverty Rate and Turnout Rate
+
+To see the relationship between voter turnout and one predictor variable hypothesized to be associated with it, we plot the 2010 poverty rate against the 2020 turnout rate for each county. There is a strong negative trend in the plot.
+
+```{r poverty}
+plot(data$poor_share2010, data$turnout.rate, main = 'Turnout Rate vs. Poverty Rate', xlab = '2010 Poverty Rate', ylab = '2020 Turnout Rate')
+```
+
+# Mixed Effects Model with State as Random Effect
+
+```{r}
+# Fit mixed effects model
+mixed_model <- lmer(turnout.rate ~ 
+                    (1|State) +  # Random intercept for state
+                    ., # All fixed effects
+                    data = select(train_data, -c(County, fips)))
+
+summary(mixed_model)
+```
+
+# Model Validation
+
+```{r}
+# Make predictions on test set
+test_pred <- predict(mixed_model, newdata = test_data)
+
+# Calculate RMSE
+rmse <- sqrt(mean((test_data$turnout.rate - test_pred)^2))
+print(paste("Root Mean Square Error:", round(rmse, 4)))
+
+# Calculate R-squared
+r2 <- cor(test_data$turnout.rate, test_pred)^2
+print(paste("R-squared on test set:", round(r2, 4)))
+```
+
+# Preliminary Model
+
+We also check that our hypothesis that the turnout rate can be predicted from county demographics is reasonable by fitting a linear regression model.
+
+```{r model}
+lm_model <- lm(turnout.rate ~ . - (State + County + fips), data = data)
+summary(lm_model)
+```
+
+# Diagnostics
+
+```{r diagnostics}
+plot(lm_model, c(1, 2))
+```
+
+## Existence of Variance
+The spread of residuals in the plots demonstrates clear variation in our dependent variable, confirming the existence of variance. The residuals show a reasonable spread around zero, with most falling between -0.2 and 0.2, indicating that our model has captured meaningful variation in the data while maintaining reasonable error terms.
+
+## Linearity
+The Residuals vs Fitted plot reveals a relatively flat red line hovering around zero, suggesting the linearity assumption is reasonably met. While there is some pattern in the spread of residuals, the scatter appears generally random. The plot identifies points 43, 2391, and 413 as potential outliers that warrant further investigation. Overall, the linearity assumption appears to be satisfied, though with some potential concerns that might need additional examination.
+
+## Independence
+Independence cannot be directly assessed from these diagnostic plots alone. Given that this analysis uses county-level data, there is likely spatial correlation present between neighboring counties. Additional specific tests would be necessary to evaluate this assumption, such as Moran's I for spatial autocorrelation. We hope to ask a Teaching Fellow about further analysis regarding this possible violation of our assumptions.
+
+## Homogeneity (Homoscedasticity)
+Examining the Residuals vs Fitted plot, we observe a fanning pattern where the spread of residuals is wider in the middle range of fitted values. This pattern suggests the presence of heteroscedasticity, meaning the variance of residuals is not constant across all fitted values. This violation of the homoscedasticity assumption suggests we should consider using robust standard errors or weighted least squares estimation methods to address this issue.
+
+## Normality
+The Q-Q plot provides a visual assessment of normality by comparing the standardized residuals against theoretical normal quantiles. The majority of points follow the diagonal line, suggesting approximate normality in the central region of the distribution. However, we observe some deviation at both tails, particularly with point 413 showing as a significant lower outlier and points near 43 & 2391 deviating at the upper tail. Given our large sample size, the Central Limit Theorem suggests that these deviations from normality are less concerning for inference purposes.
+
+# Overall Recommendations and Next Steps
+Based on these diagnostics, several actions are recommended. First, investigate points 413, 43, and 2391 for potential data issues or substantive influence. Second, implement robust standard errors to address the observed possible heteroscedasticity. Third, consider spatial correlation adjustments given the county-level nature of the data. 
+
+Regarding the model, we will test interaction terms to see how different factors affect each other. We will also observe how applying regularization impacts our regression.
