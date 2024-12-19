@@ -33,6 +33,8 @@ options("huxtable.long_minus" = T)
 
 The dataset contains 3,141 observations and 21 variables, 19 of which (all except county and FIPS code) will be used as predictors. All predictors except state are continuous. For each of our continuous predictors, we summarize the number of missing values, the mean, median, standard deviation, interquartile range, minimum value, and maximum value (Table \@ref(tab:summary)).
 
+\textcolor{red}{Include descriptions of variables!!}
+
 ```{r summary, echo = F}
 data <- read.csv("../data/processed/data.csv")
 predictors <- names(data)[!(names(data) %in% c('State', 'County', 'fips'))]
@@ -132,7 +134,7 @@ hist(data$turnout.rate, main = 'Histogram of Turnout Rate', xlab = 'Turnout Rate
 
 To see the relationship between voter turnout and one predictor variable hypothesized to be associated with it, we plot the 2010 poverty rate against the 2020 turnout rate for each county (Figure \@ref(fig:povertyturnout)). There is a moderate to strong negative association between the variables ($r = -0.571$).
 
-```{r povertyturnout, echo = F, fig.cap = 'Povery rate vs. turnout rate.'}
+```{r povertyturnout, echo = F, fig.cap = 'Poverty rate vs. turnout rate.'}
 plot(data$poor_share2010, data$turnout.rate, main = 'Turnout Rate vs. Poverty Rate', xlab = '2010 Poverty Rate', ylab = '2020 Turnout Rate')
 # cor(data$poor_share2010, data$turnout.rate)
 ```
@@ -143,7 +145,7 @@ plot(data$poor_share2010, data$turnout.rate, main = 'Turnout Rate vs. Poverty Ra
 
 ## Baseline Model
 
-We check that our hypothesis that the turnout rate can be predicted from county demographics is reasonable by fitting a linear regression model.
+We check that our hypothesis that the turnout rate can be predicted from county demographics is reasonable by fitting a baseline linear regression model containing all predictors except state and no interaction terms. The model output is shown in Table \@ref(tab:baseline).
 
 ```{r baseline, echo = F}
 lm_model <- lm(turnout.rate ~ . - (State + County + fips), data = data)
@@ -165,30 +167,14 @@ caption_pos(ht) <- 'bottom'
 ht
 ```
 
-The linear regression model examining voter turnout demonstrates several significant 
-relationships while controlling for State, County, and FIPS fixed effects. The model 
-explains approximately 44\% of the variance in turnout rates (Adjusted R-squared = $0.4386$) 
-and is highly significant (F = $147.4$, $p < 2.2 \times 10^{-16}$). Education emerges as a strong 
-positive predictor, with a one-unit increase in college education associated with a 
-$0.371$ increase in turnout ($p < 0.001$). Other significant positive predictors include 
-foreign-born share ($\beta = 0.110$, $p < 0.05$), white population share ($\beta = 0.042$, $p < 0.05$), 
-black population share ($\beta = 0.059$, $p < 0.01$), and employment ($\beta = 0.137$, $p < 0.001$). 
-Conversely, several factors show significant negative associations with turnout: 
-poverty rate exhibits a strong negative effect ($\beta = -0.576$, $p < 0.001$), as do Asian 
-population share ($\beta = -0.506$, $p < 0.001$), single parent share ($\beta = -0.062$, $p < 0.05$), 
-travel time ($\beta = -0.043$, $p < 0.001$), and job growth ($\beta = -0.707$, $p < 0.001$). 
-Notably, several variables including median household income, Hispanic population 
-share, math scores, two-bedroom rent, population density, and job density did not 
-show significant relationships with turnout ($p > 0.05$). The residual standard error 
-of $0.073$ on $2982$ degrees of freedom suggests relatively precise estimates, while the 
-overall model significance ($p < 2.2 \times 10^{-16}$) indicates strong explanatory power in 
-predicting voter turnout rates.
+The baseline model demonstrates several significant relationships. The model explains approximately 44\% of the variance in turnout rates ($R^2 = 0.442$) and is highly significant ($F = 147.4$, $p < 2.2 \times 10^{-16}$). Education emerges as a strong positive predictor, with a one percentage point increase in college education associated with a 
+$0.372$ percentage point increase in turnout ($p < 0.001$). Other significant positive predictors include foreign-born share ($\hat{\beta} = 0.110$), white population share ($\hat{\beta} = 0.042$), black population share ($\hat{\beta} = 0.059$), and employment ($\hat{\beta} = 0.114$). Several factors show significant negative associations with turnout: poverty rate exhibits a strong negative effect ($\hat{\beta} = -0.576$), as do Hispanic population share ($\hat{\beta} = -0.051$), Asian population share ($\hat{\beta} = -0.506$), single parent share ($\hat{\beta} = -0.062$), travel time ($\hat{\beta} = -0.043$), and job growth ($\hat{\beta} = -0.707$). Lastly, several variables, including median household income, math scores, two-bedroom rent, population density, and job density, did not show significant relationships with turnout ($p > 0.05$).
 
 ### Diagnostics
 
 We conduct diagnostics for the baseline model to assess its suitability for linear regression.
 
-```{r diagnostics, echo = F}
+```{r diagnostics, echo = F, fig.cap = c('Residuals vs. fitted values plot for baseline model.', 'Q-Q residual plot for baseline model.')}
 plot(lm_model, c(1, 2))
 ```
 
