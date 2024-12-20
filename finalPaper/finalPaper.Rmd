@@ -31,10 +31,12 @@ options(repos = c(CRAN = "https://cloud.r-project.org"))
 
 # Introduction and Motivation
 
+Every four years, hundreds of millions of Americans cast their ballots for the next president of the United States in the most prominent instance of American participatory democracy. Voter turnout, or the ratio of the number of votes cast in an election to the voting-age or voting-eligible population or number of registered voters, is regarded as important indicator of the health of popular democracy [@woolley_voter_2024]. Barriers to voting, such as strict voter ID laws, purging voter rolls, and reducing early voting times, have been a pressing concern for as long as voting has existed but are especially relevant today [@noauthor_voter_2024]. Social scientists and policymakers are interested in determinants of voter turnout and potential interventions to increase voting. In this project, we curate a county-level dataset of voter turnout in the 2020 U.S. presidential election and a variety of socioeconomic and demographic characteristics. We hypothesize that \textcolor{red}{FINISH...}
+
 
 # Data Description and Exploratory Data Analysis
 
-The dataset combines voter turnout data from the MIT Election Lab, population data from the U.S. Census Bureau, and socioeconomic and demographic predictors from Opportunity Insights. The turnout rate data is calculating by dividing the voter turnout for the 2020 presidential election in each county [@mit_election_data_and_science_lab_county_2018] by the voting-eligible population (U.S. citizens age 18 and up) [@us_census_bureau_b05003_2020]. The resulting turnout rate should be a proportion between 0 and 1. The exception for the voter turnout data is Alaska, whose data is organized by election districts. Estimates for Alaska voter turnout data by county equivalent (borough and Census area) are derived from another source [@cinyc_alaska_2021].
+The dataset combines election data from the MIT Election Lab, population data from the U.S. Census Bureau, and socioeconomic and demographic predictors from Opportunity Insights. The turnout rate data is calculating by dividing the number of votes cast in the 2020 U.S. presidential election in each county [@mit_election_data_and_science_lab_county_2018] by the voting-eligible population (U.S. citizens age 18 and up) [@us_census_bureau_b05003_2020]. The resulting turnout rate should be a proportion between 0 and 1. The exception for the election data is Alaska, whose data is organized by election districts. Estimates for Alaska election data by county equivalent (borough and Census area) are derived from another source [@cinyc_alaska_2021].
 
 The predictors (county-level demographic and socioeconomic characteristics) are from Opportunity Insights, a Harvard-based research lab studying economic opportunity in the United States [@chetty_replication_2022]. For predictors labeled with years, the data is for the labeled year(s) or the 5-year period ending in the labeled year. Basic descriptions of the predictors can be found in Table \@ref(tab:summary) and more detailed descriptions can be found [here](https://opportunityinsights.org/wp-content/uploads/2019/07/Codebook-for-Table-10.pdf). Datasets for FIPS state and county codes are also used to merge the data sources [@us_census_bureau_american_2023].
 
@@ -176,9 +178,9 @@ data %>%
   ggplot(aes(x = poor_share2010, y = turnout.rate)) +
     geom_point(alpha = 0.5) +
     geom_smooth(method = 'lm') +
-    annotate("text", x = max(data$poor_share2010, na.rm = TRUE) * 0.8, 
-             y = max(data$turnout.rate, na.rm = TRUE) * 0.9, 
-             label = paste0("Correlation (r): ", round(correlation, 3)),
+    annotate("text", x = max(data$poor_share2010) * 0.7, 
+             y = max(data$turnout.rate) * 0.9, 
+             label = paste("Correlation (r):", round(correlation, 3)),
              hjust = 0, vjust = 1, size = 3.5, color = "blue") +
     labs(
       title = 'Turnout Rate vs. Poverty Rate in U.S. Counties',
@@ -295,7 +297,9 @@ LASSO retained most predictors but excluded `gsmn_math_g3_2013` and `rent_twobed
 
 ## Correlation Structure
 
-Examining correlations among predictors helps identify potential multicollinearity and structure in the data.
+Examining correlations among predictors helps identify potential multicollinearity and structure in the data. The heatmap (Figure \@ref(fig:corr)) shows groups of variables that cluster together, indicating underlying socioeconomic dimensions (e.g., poverty and race-related measures clustered together, economic growth and density measures in another cluster). These clusters may reflect underlying latent factors that shape voter turnout.
+
+\textcolor{red}{One concern shown in the correlation matrix is the very high correlation between population density and job density}
 
 ```{r corr, echo = F, fig.width = 8, fig.height = 8, fig.cap = 'CAPTION!'}
 cor_matrix <- cor(data[, predictors], use = "pairwise.complete.obs")
@@ -309,10 +313,6 @@ pheatmap(
   height = 30
 )
 ```
-
-The heatmap shows groups of variables that cluster together, indicating underlying socioeconomic dimensions (e.g., poverty and race-related measures clustered together, economic growth and density measures in another cluster). These clusters may reflect underlying latent factors that shape voter turnout.
-
-\textcolor{red}{One concern shown in the correlation matrix is the very high correlation between population density and job density}
 
 ## Interaction Terms
 
@@ -333,10 +333,10 @@ A highly significant test result ($p < 2.2\mathrm{e-}16$) suggests the interacti
 share is crucial, indicating that the effect of education on turnout may depend on the poverty context of the
 county (and vice versa).
 
-## Final Model Including State Fixed Effects
+## State Fixed Effects
 
 We run a final model excluding the variables zeroed out by LASSO and adding state fixed effects to control
-for unobserved state-level heterogeneity.
+for unobserved state-level heterogeneity. The output of the model is shown in Table \@ref(tab:final) (state fixed effects estimates are shown in Table \@ref(tab:finalstate)).
 
 ```{r final, echo = F}
 model_post_lasso <- lm(
@@ -361,7 +361,11 @@ contexts also shape the electoral participation landscape.
 
 Our analysis shows that socioeconomic and demographic factors strongly influence county-level voter turnout. Education and certain demographic features (e.g., Black population share) are robust, positive predictors of turnout, while higher poverty rates, longer travel times, and certain population characteristics (e.g., Asian population share) are negatively associated. LASSO regularization supports the exclusion of non-influential predictors, refining the model and reinforcing the significance of key variables. Incorporating interaction terms and state fixed effects further refines our understanding, revealing that the influence of education on turnout may be contingent on the economic context and that state-level factors account for substantial variation across the U.S. counties.
 
-There are some limitations to our findings. One important caveat is that these associations between county-wide factors and voter turnout do not imply anything about the individuals within counties. Concluding that, for instance, highly educated people are more likely to vote solely based on the data presented here would an example of the ecological fallacy, where inferences about individuals are made based on inferences about groups containing those individuals [@freedman_ecological_1999]. Another limitation is that there is a somewhat arbitrary time lag between the measurement of the predictors and the outcome (the socioeconomic and demographic factors are measured between 2000 and 2016, but the voter turnout rate is measured in 2020). Regardless, these findings have implications for policymakers and organizations interested in increasing voter participation. Interventions that improve socioeconomic conditions, reduce poverty, enhance education, and consider unique state-level political climates could foster higher electoral engagement, but more research should be done at the individual level or experimental level to reach more statistically sound conclusions.
+There are some limitations to our findings. One important caveat is that these associations between county-wide factors and voter turnout do not imply anything about the individuals within counties. Concluding that, for instance, highly educated people are more likely to vote solely based on the data presented here would an example of the ecological fallacy, where inferences about individuals are made based on inferences about groups containing those individuals [@freedman_ecological_1999]. Another limitation is that there is a somewhat arbitrary time lag between the measurement of the predictors and the outcome (the socioeconomic and demographic factors are measured between 2000 and 2016, but the voter turnout rate is measured in 2020). We posit that these predictors do not change much from year to year, which is an assumption that could be tested with more data.
+
+\textcolor{red}{There may be other characteristics that impact county-level voter turnout not captured in our data}
+
+Regardless, these findings have implications for policymakers and organizations interested in increasing voter participation. Interventions that improve socioeconomic conditions, reduce poverty, enhance education, and consider unique state-level political climates could foster higher electoral engagement, but more research should be done at the individual level or experimental level to reach more statistically sound conclusions.
 
 # Bibliography
 
