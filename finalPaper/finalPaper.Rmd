@@ -6,15 +6,11 @@ output:
   bookdown::pdf_document2
 bibliography: 'references.bib'
 urlcolor: blue
+header-includes:
+  \usepackage{float}
+  \floatplacement{figure}{H}
+  \usepackage{subfig}
 ---
-
-# Introduction and Motivation
-
-# Data Description and EDA
-
-There are a few different data sources joined together to make this dataset. The turnout rate data is calculating by dividing the voter turnout for the 2020 presidential election in each county (from the [MIT Election Lab](https://doi.org/10.7910/DVN/VOQCHQ)) by the voting-eligible population (U.S. citizens age 18 and up) according to the [2020 5-year American Community Survey](https://data.census.gov/table/ACSDT5Y2020.B05003?t=Citizenship&g=010XX00US$0500000&y=2020&d=ACS%205-Year%20Estimates%20Detailed%20Tables&moe=false&tp=true) released by the U.S. Census Bureau. The resulting turnout rate should be a proportion between 0 and 1. The exception for the voter turnout data is Alaska, whose voter turnout data is organized by election districts instead of borough and Census areas (Alaska's county equivalents). To have this data be consistent with the predictor variables, I got estimates for Alaska voter turnout data by borough and Census area from a [blog post](https://rrhelections.com/index.php/2021/04/13/alaska-presidential-results-by-county-equivalent-1960-2020/9/).
-
-The [predictors](https://opportunityinsights.org/wp-content/uploads/2024/07/Table_8_county_covariates.csv) (county-level demographic and socioeconomic characteristics) are from Opportunity Insights, a Harvard-based research lab studying economic opportunity in the United States. Descriptions of the variables can be found [here](https://opportunityinsights.org/wp-content/uploads/2019/07/Codebook-for-Table-10.pdf). Datasets for FIPS [state](https://www2.census.gov/geo/docs/reference/codes2020/national_state2020.txt) and [county](https://www2.census.gov/geo/docs/reference/codes2020/national_county2020.txt) codes are also used to merge the data sources.
 
 ```{r setup, message = F, warning = F, echo = F}
 rm(list = ls())
@@ -24,33 +20,29 @@ require(dplyr)
 require(knitr)
 require(glmnet)
 require(pheatmap)
-require(ggplot2) # maybe remove
+require(ggplot2)
 require(huxtable)
 options("huxtable.long_minus" = T)
-if (!require("Matrix")) install.packages("Matrix", repos = "https://cloud.r-project.org")
-if (!require("glmnet")) install.packages("glmnet", repos = "https://cloud.r-project.org")
-library(Matrix)
-library(glmnet)
-library(pheatmap)
+require(Matrix)
 
 options(repos = c(CRAN = "https://cloud.r-project.org"))
 ```
 
-# Data Description
 
-The dataset combines voter turnout data from the [MIT Election Lab](https://doi.org/10.7910/DVN/VOQCHQ), U.S. Census Bureau’s [2020 ACS 5-year estimates](https://data.census.gov/table/ACSDT5Y2020.B05003), and socioeconomic and demographic predictors from [Opportunity Insights](https://opportunityinsights.org/). Voter turnout is computed as the total votes cast in the 2020 U.S. presidential election divided by the voting-eligible population (U.S. citizens aged 18 or above). For Alaska, voter turnout estimates are derived from [this blog post](https://rrhelections.com/index.php/2021/04/13/alaska-presidential-results-by-county-equivalent-1960-2020/9/).
+# Introduction and Motivation
 
-Predictor variables include a wide variety of socioeconomic and demographic measures at the county level, such as education levels, poverty rates, median household income, and racial/ethnic population shares. More details and data dictionary information are available at the Opportunity Insights website. FIPS codes from the U.S. Census Bureau are used to merge data sources.
 
-# Data Loading and Cleaning
+# Data Description and Exploratory Data Analysis
+
+The dataset combines voter turnout data from the MIT Election Lab, population data from the U.S. Census Bureau, and socioeconomic and demographic predictors from Opportunity Insights. The turnout rate data is calculating by dividing the voter turnout for the 2020 presidential election in each county [@mit_election_data_and_science_lab_county_2018] by the voting-eligible population (U.S. citizens age 18 and up) [@us_census_bureau_b05003_2020]. The resulting turnout rate should be a proportion between 0 and 1. The exception for the voter turnout data is Alaska, whose data is organized by election districts. Estimates for Alaska voter turnout data by county equivalent (borough and Census area) are derived from another source [@cinyc_alaska_2021].
+
+The predictors (county-level demographic and socioeconomic characteristics) are from Opportunity Insights, a Harvard-based research lab studying economic opportunity in the United States [@chetty_replication_2022]. For predictors labeled with years, the data is for the labeled year(s) or the 5-year period ending in the labeled year. Basic descriptions of the predictors can be found in Table \@ref(tab:summary) and more detailed descriptions can be found [here](https://opportunityinsights.org/wp-content/uploads/2019/07/Codebook-for-Table-10.pdf). Datasets for FIPS state and county codes are also used to merge the data sources [@us_census_bureau_american_2023].
 
 ## Descriptive Statistics
 
-The dataset contains 3,141 observations and 21 variables, 19 of which (all except county and FIPS code) will be used as predictors. All predictors except state are continuous. For each of our continuous predictors, we summarize the number of missing values, the mean, median, standard deviation, interquartile range, minimum value, and maximum value (Table \@ref(tab:summary)).
+The dataset contains 3,141 observations and 21 variables, 19 of which (all except county and FIPS code) will be used as predictors. All predictors except state are continuous. For each of our continuous variables, we summarize the number of missing values, mean, median, standard deviation, interquartile range, minimum value, and maximum value (Table \@ref(tab:summary)). 
 
-\textcolor{red}{Include descriptions of variables!!}
-
-```{r summary, echo = F}
+```{r summary, echo = F, fig.pos = 'H'}
 data <- read.csv("../data/processed/data.csv")
 predictors <- names(data)[!(names(data) %in% c('State', 'County', 'fips'))]
 summary_table <- data.frame()
@@ -77,33 +69,49 @@ for (predictor in predictors) {
   ))
 }
 
+summary_table <- cbind(
+  'Variable' = summary_table[,1],
+  'Description' = c(
+    "Proportion of people age 25 or older with a bachelor's degree or higher",
+    "Proportion of residents that are foreign-born",
+    "Median household income",
+    "Proportion of residents below the federal poverty line",
+    "Proportion of residents that are White non-Hispanic",
+    "Proportion of residents that are Black non-Hispanic",
+    "Proportion of residents that are Hispanic",
+    "Proportion of residents that are Asian non-Hispanic",
+    "Mean 3rd grade math test scores (grade level)",
+    "Median gross rent for two-bedroom housing units",
+    "Proportion of households with children that have a single parent",
+    "Proportion of workers age 16 or older who do not work at home that have a commute shorter than 15 minutes",
+    "Proportion of residents age 16 or older that are employed",
+    "Difference in log average hourly wage for high school graduates between 2010-2014 and 2005-2009",
+    "Residents per square mile",
+    "Average annualized job growth rate",
+    "Jobs per square mile",
+    "Proportion of voting-eligible residents who voted in the 2020 presidential election"
+  ),
+  summary_table[,2:dim(summary_table)[2]]
+)
+
 ht = hux(summary_table)
+font_size(ht) <- 7
+number_format(ht)[,-1:-2] <- fmt_pretty()
+number_format(ht)[4, -1:-2] <- fmt_pretty(digits = 1)
+number_format(ht)[c(16, 18), 9] <- fmt_pretty(digits = 6)
+col_width(ht) <- c(0.22, 0.255, rep(0.075, 7))
 bold(ht)[1,] <- T
 bottom_border(ht)[1,] <- 1
-align(ht) <- 'right'
+align(ht)[,1] <- 'left'
+align(ht)[,-1] <- 'right'
 markdown(ht)[,1] <- T
+width(ht) <- 1.2
+wrap(ht) <- T
 caption(ht) <- 'Descriptive statistics of the continuous predictors in the dataset.'
 caption_pos(ht) <- 'bottom'
 ht
 
-# kable(summary_table, caption = 'Descriptive statistics of the continuous predictors in the dataset.')
-
 # dim(data)
-```
-
-
-
-```{r state, echo = F}
-data %>%
-  ggplot(aes(y = State)) +
-    geom_bar() +
-    scale_y_discrete(limits = rev) +
-    labs(
-      title = 'Number of Counties per State',
-      x = 'Number of Counties'
-    ) +
-    theme_minimal() +
-    theme(axis.text.y = element_text(size = 6))
 ```
 
 ## Pre-Processing
@@ -133,36 +141,55 @@ data <- data %>% mutate(
 
 ## Exploratory Graphs
 
-### Turnout Rate
+Figure \@ref(fig:state) shows the number of counties or county equivalents for each state in the dataset. The counts range from 1 in the District of Columbia to about 225 in Texas.
 
-The histogram of turnout rate (Figure \@ref(fig:turnout)) shows an approximately normal distribution.
+```{r state, echo = F, fig.cap = 'Bar chart showing the number of counties or county equivalents per state in the dataset.'}
+data %>%
+  ggplot(aes(y = State)) +
+    geom_bar() +
+    scale_y_discrete(limits = rev) +
+    labs(
+      title = 'Number of Counties per State',
+      x = 'Number of Counties'
+    ) +
+    theme_minimal() +
+    theme(axis.text.y = element_text(size = 6))
+```
+
+The histogram of turnout rate (Figure \@ref(fig:turnout)) shows an approximately normal distribution. Most counties have turnout rates between 0.45 and 0.85, with few extreme values.
 
 ```{r turnout, echo = F, fig.cap = 'Histogram of turnout rate for counties shows an approximately normal distribution.'}
 hist(data$turnout.rate, main = 'Histogram of Turnout Rate', xlab = 'Turnout Rate')
 ```
 
-```{r poverty, echo = F, fig.cap = 'Histogram of poverty rate for counties shows an approximately normal distribution.'}
-# hist(data$poor_share2010, main = 'Histogram of Poverty Rate', xlab = 'Poverty Rate')
-```
+To see the relationship between voter turnout and one predictor variable hypothesized to be associated with it, we plot the 2010 poverty rate against the 2020 turnout rate for each county (Figure \@ref(fig:povertyturnout)). There is a moderate negative association between the variables ($r = -0.571$).
 
-### Poverty Rate and Turnout Rate
+```{r povertyturnout, echo = F, message = F, fig.cap = 'Scatterplot of poverty rate vs. turnout rate. The negative association between the two variables aligns with the theory that socioeconomic disadvantage is associated with lower electoral participation.'}
+data %>%
+  ggplot(aes(x = poor_share2010, y = turnout.rate)) +
+    geom_point(alpha = 0.5) +
+    geom_smooth(method = 'lm') +
+    labs(
+      title = 'Turnout Rate vs. Poverty Rate in U.S. Counties',
+      x = '2010 Poverty Rate',
+      y = '2020 Turnout Rate'
+    ) +
+    theme_minimal()
 
-To see the relationship between voter turnout and one predictor variable hypothesized to be associated with it, we plot the 2010 poverty rate against the 2020 turnout rate for each county (Figure \@ref(fig:povertyturnout)). There is a moderate to strong negative association between the variables ($r = -0.571$).
-
-```{r povertyturnout, echo = F, fig.cap = 'Poverty rate vs. turnout rate.'}
-plot(data$poor_share2010, data$turnout.rate, main = 'Turnout Rate vs. Poverty Rate', xlab = '2010 Poverty Rate', ylab = '2020 Turnout Rate')
 # cor(data$poor_share2010, data$turnout.rate)
 ```
 
+
 # Methods
+
 
 # Results
 
 ## Baseline Model
 
-We check that our hypothesis that the turnout rate can be predicted from county demographics is reasonable by fitting a baseline linear regression model containing all predictors except state and no interaction terms. The model output is shown in Table \@ref(tab:baseline).
+We first fit a simple linear regression model containing all predictors except state and no interaction terms. The model output is shown in Table \@ref(tab:baseline).
 
-```{r baseline, echo = F}
+```{r baseline, echo = F, fig.pos = 'H'}
 lm_model <- lm(turnout.rate ~ . - (State + County + fips), data = data)
 # summary(lm_model)
 
@@ -174,7 +201,8 @@ colnames(baseline)[3:5] <- c('SE', '$t$-value', '$p$-value')
 ht <- hux(baseline)
 bold(ht)[1,] <- T
 bottom_border(ht)[1,] <- 1
-align(ht) <- 'right'
+align(ht)[,1] <- 'left'
+align(ht)[,-1] <- 'right'
 markdown(ht)[,1] <- T
 escape_contents(ht) <- F
 caption(ht) <- 'Baseline model output.'
@@ -182,32 +210,33 @@ caption_pos(ht) <- 'bottom'
 ht
 ```
 
-The baseline model demonstrates several significant relationships. The model explains approximately 44\% of the variance in turnout rates ($R^2 = 0.442$) and is highly significant ($F = 147.4$, $p < 2.2 \times 10^{-16}$). Education emerges as a strong positive predictor, with a one percentage point increase in college education associated with a 
-$0.372$ percentage point increase in turnout ($p < 0.001$). Other significant positive predictors include foreign-born share ($\hat{\beta} = 0.110$), white population share ($\hat{\beta} = 0.042$), black population share ($\hat{\beta} = 0.059$), and employment ($\hat{\beta} = 0.114$). Several factors show significant negative associations with turnout: poverty rate exhibits a strong negative effect ($\hat{\beta} = -0.576$), as do Hispanic population share ($\hat{\beta} = -0.051$), Asian population share ($\hat{\beta} = -0.506$), single parent share ($\hat{\beta} = -0.062$), travel time ($\hat{\beta} = -0.043$), and job growth ($\hat{\beta} = -0.707$). Lastly, several variables, including median household income, math scores, two-bedroom rent, population density, and job density, did not show significant relationships with turnout ($p > 0.05$).
+The baseline model demonstrates several significant relationships. The model explains approximately 44\% of the variance in turnout rates ($R^2 = 0.442$). Education emerges as a strong positive predictor, with a one percentage point increase in college education associated with a $0.372$ percentage point increase in turnout ($p < 0.001$). Other significant positive predictors include foreign-born share ($\hat{\beta} = 0.110$), White population share ($\hat{\beta} = 0.042$), Black population share ($\hat{\beta} = 0.059$), and employment ($\hat{\beta} = 0.114$). Several factors show significant negative associations with turnout: poverty rate exhibits a strong negative effect ($\hat{\beta} = -0.576$), as do Hispanic population share ($\hat{\beta} = -0.051$), Asian population share ($\hat{\beta} = -0.506$), single parent share ($\hat{\beta} = -0.062$), travel time ($\hat{\beta} = -0.043$), and job growth ($\hat{\beta} = -0.707$). Lastly, several variables, including median household income, math scores, two-bedroom rent, population density, and job density, are not significantly related to turnout at the $\alpha = 0.05$ threshold. This initial exploration suggests that socioeconomic
+conditions significantly shape local electoral participation.
 
 ### Diagnostics
 
-We conduct diagnostics for the baseline model to assess its suitability for linear regression.
+We conduct diagnostics for the baseline model to assess its suitability for linear regression. Below we assess the assumptions required for OLS linear regression:
 
-```{r diagnostics, echo = F, fig.cap = c('Residuals vs. fitted values plot for baseline model.', 'Q-Q residual plot for baseline model.')}
-plot(lm_model, c(1, 2))
+* **Existence of Variance:** Residuals are reasonably dispersed, confirming the existence of variation in
+the dependent variable.
+* **Linearity:** The residuals vs. fitted values plot (Figure \@ref(fig:diagnostics)a) does not show pronounced curvature, suggesting linearity is generally satisfied.
+* **Independence:** Spatial correlation may exist between neighboring counties; external tests (like Moran’s I) should be considered for future analyses.
+* **Homogeneity (Homoscedasticity):** Some fanning in the residuals vs. fitted values plot (Figure \@ref(fig:diagnostics)a) suggests heteroscedasticity. Robust standard errors or alternative modeling approaches may be warranted.
+* **Normality:** The Q-Q plot (Figure \@ref(fig:diagnostics)b) shows mostly normal residuals, with minor deviations in the tails.
+
+Overall, while the model is a decent fit, improvements---such as using robust errors or accounting for spatial autocorrelation---could refine our inference.
+
+```{r diagnostics, echo = F, fig.cap = 'Diagnostic plots for baseline model.', fig.subcap = c('Residuals vs. fitted values plot.', 'Q-Q residual plot.'), out.width='.49\\linewidth', fig.ncol = 2}
+plot(lm_model, 1:2, sub.caption = '')
 ```
 
-* **Existence of Variance:** The spread of residuals in the plots demonstrates clear variation in our dependent variable, confirming the existence of variance. The residuals show a reasonable spread around zero, with most falling between -0.2 and 0.2, indicating that our model has captured meaningful variation in the data while maintaining reasonable error terms.
-* **Linearity:** The Residuals vs Fitted plot reveals a relatively flat red line hovering around zero, suggesting the linearity assumption is reasonably met. While there is some pattern in the spread of residuals, the scatter appears generally random. The plot identifies points 43, 2391, and 413 as potential outliers that warrant further investigation. Overall, the linearity assumption appears to be satisfied, though with some potential concerns that might need additional examination.
-* **Independence:** Independence cannot be directly assessed from these diagnostic plots alone. Given that this analysis uses county-level data, there is likely spatial correlation present between neighboring counties. Additional specific tests would be necessary to evaluate this assumption, such as Moran's I for spatial autocorrelation. We hope to ask a Teaching Fellow about further analysis regarding this possible violation of our assumptions.
-* **Homogeneity (Homoscedasticity):** Examining the Residuals vs Fitted plot, we observe a fanning pattern where the spread of residuals is wider in the middle range of fitted values. This pattern suggests the presence of heteroscedasticity, meaning the variance of residuals is not constant across all fitted values. This violation of the homoscedasticity assumption suggests we should consider using robust standard errors or weighted least squares estimation methods to address this issue.
-* **Normality:** The Q-Q plot provides a visual assessment of normality by comparing the standardized residuals against theoretical normal quantiles. The majority of points follow the  diagonal line, suggesting approximate normality in the central region of the distribution. However, we observe some deviation at both tails, particularly with point 413 showing as a significant lower outlier and points near 43 & 2391 deviating at the upper tail. Given our large sample size, the Central Limit Theorem suggests that these deviations from normality are less concerning for inference purposes.
-
-# Introduction of LASSO Regularization
+## Regularization
 
 To address potential overfitting and identify the most influential variables, we employ LASSO regularization, which introduces a penalty that can shrink some coefficients to zero.
 
-```{r, echo = F}
+\textcolor{red}{Elaborate on LASSO}
 
-library(glmnet)
-library(pheatmap)
-
+```{r lasso, echo = F}
 predictors <- names(data)[!(names(data) %in% c('State', 'County', 'fips', 'turnout.rate'))]
 x <- model.matrix(turnout.rate ~ . - (State + County + fips), data = data)[, -1]
 y <- data$turnout.rate
@@ -217,45 +246,43 @@ cv.lasso <- cv.glmnet(x, y, alpha = 1, nfolds = 10)
 best_lambda <- cv.lasso$lambda.min
 
 lasso_model <- glmnet(x, y, alpha = 1, lambda = best_lambda)
-coef(lasso_model)
+lasso_coefs <- data.frame(coef(lasso_model)[,])
+lasso_coefs <- cbind('Variable' = c(rownames(lasso_coefs)[1], paste0('`', rownames(lasso_coefs)[-1], '`')), lasso_coefs)
+colnames(lasso_coefs)[2] <- 'Coefficient'
+ht <- hux(lasso_coefs)
+bold(ht)[1,] <- T
+bottom_border(ht)[1,] <- 1
+align(ht)[,1] <- 'left'
+align(ht)[,-1] <- 'right'
+markdown(ht)[,1] <- T
+escape_contents(ht) <- F
+caption(ht) <- 'Coefficients after LASSO regularization with $\\lambda = 2.769\\mathrm{e-}4$.'
+caption_pos(ht) <- 'bottom'
+ht
 ```
 
-By selecting `lambda.min` through cross-validation, we identify a penalty level that balances predictive accuracy and model complexity. This approach ensures we do not overfit by including too many small-effect predictors.
+The optimal $\lambda = 2.769\mathrm{e-}4$ was selected through ten-fold cross-validation to achieve a penalty level that balances predictive accuracy and model complexity. This approach ensures we do not overfit by including too many small-effect predictors.
 
-```{r, fig.width=7, fig.height=5}
+```{r lassoplot, echo = F, fig.width = 7, fig.height = 5, fig.cap = 'CAPTION!'}
 cols <- rainbow(ncol(x))
-plot(cv.lasso$glmnet.fit, xvar="lambda", label=TRUE, col=cols, lwd=2, cex.lab=1.2, cex.axis=1.2)
-abline(v = log(best_lambda), lty=2, col="red", lwd=2)
-title("LASSO Coefficients as Function of Regularization Strength", cex.main=1.2)
-legend("topright", inset=c(-0.1,0), legend = colnames(x), col = cols, lty=1, lwd=2, cex=0.6, xpd=TRUE)
+plot(cv.lasso$glmnet.fit, xvar = 'lambda', col = cols, xlab = expression(log(lambda)), ylab = 'Coefficient', xlim = c(-9.6, -2), ylim = c(-0.9, 0.4), lwd = 2)
+abline(v = log(best_lambda), lty=2, col="black", lwd = 2)
+title("LASSO Coefficients as Function of Regularization Strength", line = 3)
+title(sub = 'Degrees of Freedom', line = -18.7, cex.sub = 0.7)
+legend("bottomright", legend = colnames(x), col = cols, lty=1, cex=0.6)
 ```
 
-As `log(lambda)` decreases (moving right), regularization strength weakens, and more predictors enter the model with non-zero coefficients. The vertical red line shows the chosen lambda. Predictors that remain at zero near the vertical line are dropped from the final model. This graph visually demonstrates which variables are “important enough” to survive the LASSO penalty.
+As $\lambda$ increases (moving right on the $x$-axis of Figure \@ref(fig:lassoplot)), the regularization strength increases and more predictors drop out of the model with coefficients of 0. The vertical dashed black line shows the chosen $\lambda$. Predictors with coefficients of 0 at the vertical line are dropped from the final model. This graph visually demonstrates which variables are “important enough” to survive the LASSO penalty.
 
-```{r}
-coeffs <- coef(lasso_model)
-coeffs_df <- as.data.frame(as.matrix(coeffs))
-colnames(coeffs_df) <- "Coefficient"
-coeffs_df$Predictor <- rownames(coeffs_df)
-coeffs_df <- subset(coeffs_df, Predictor != "(Intercept)")
+\textcolor{red}{Not much regularization for most variables}
 
-kept <- coeffs_df$Predictor[coeffs_df$Coefficient != 0]
-not_kept <- coeffs_df$Predictor[coeffs_df$Coefficient == 0]
+LASSO retained most predictors but excluded `gsmn_math_g3_2013` and `rent_twobed2015` (Table \@ref(tab:lasso)). This aligns with earlier findings that these variables were not statistically significant in the preliminary linear model.
 
-cat("Predictors kept by LASSO:\n")
-print(kept)
-
-cat("\nPredictors removed by LASSO (coefficients = 0):\n")
-print(not_kept)
-```
-
-LASSO retained most predictors but excluded `gsmn_math_g3_2013` and `rent_twobed2015`. This aligns with earlier findings that these variables were not statistically significant in the preliminary linear model.
-
-# Correlation Structure
+## Correlation Structure
 
 Examining correlations among predictors helps identify potential multicollinearity and structure in the data.
 
-```{r, echo = F, fig.width=8, fig.height=8}
+```{r corr, echo = F, fig.width = 8, fig.height = 8, fig.cap = 'CAPTION!'}
 cor_matrix <- cor(data[, predictors], use = "pairwise.complete.obs")
 pheatmap(cor_matrix, 
      cluster_rows = TRUE, 
@@ -267,11 +294,13 @@ pheatmap(cor_matrix,
 
 The heatmap shows groups of variables that cluster together, indicating underlying socioeconomic dimensions (e.g., poverty and race-related measures clustered together, economic growth and density measures in another cluster). These clusters may reflect underlying latent factors that shape voter turnout.
 
-# Interaction Terms and Revised Models
+One concern shown in the correlation matrix is the very high correlation between population density and job density
+
+## Interaction Terms
 
 We test whether adding an interaction term between education and poverty (`frac_coll_plus2010:poor_share2010`) improves model performance.
 
-```{r, echo = F}
+```{r interaction, echo = F}
 model_reduced <- lm(turnout.rate ~ . - State - County - fips - gsmn_math_g3_2013 - rent_twobed2015, data = data)
 
 model_full <- lm(turnout.rate ~ . - State - County - fips - gsmn_math_g3_2013 - rent_twobed2015 
@@ -279,13 +308,19 @@ model_full <- lm(turnout.rate ~ . - State - County - fips - gsmn_math_g3_2013 - 
                  data = data)
 
 anova_test <- anova(model_reduced, model_full)
-anova_test
-
+# anova_test
 ```
 
-P value 2.2e-16 signifcant.. means that interaction term is significant and helps to explain the variance in the model.
+A highly significant test result ($p < 2.2\mathrm{e-}16$) suggests the interaction between college education fraction and poverty
+share is crucial, indicating that the effect of education on turnout may depend on the poverty context of the
+county (and vice versa).
 
-```{r, echo = F}
+## Final Model Including State Fixed Effects
+
+We run a final model excluding the variables zeroed out by LASSO and adding state fixed effects to control
+for unobserved state-level heterogeneity.
+
+```{r final, echo = F}
 model_post_lasso <- lm(
   turnout.rate ~ . - State - County - fips - gsmn_math_g3_2013 - rent_twobed2015 + factor(State),
   data = data
@@ -294,8 +329,23 @@ model_post_lasso <- lm(
 summary(model_post_lasso)
 ```
 
+With state fixed effects, the adjusted $R^2$ improves to approximately 0.646, suggesting that differences between states
+explain a significant portion of turnout variation. After controlling for state-level factors, education, poverty,
+and various demographic characteristics remain significant. Notably, poverty and time-to-work remain
+negatively associated with turnout, while educational attainment consistently shows a positive association.
+This final specification suggests that while local socioeconomic conditions are important, broader state-level
+contexts also shape the electoral participation landscape.
+
+
 # Discussion and Conclusion
 
+Our analysis shows that socioeconomic and demographic factors strongly influence county-level voter turnout. Education and certain demographic features (e.g., Black population share) are robust, positive predictors of turnout, while higher poverty rates, longer travel times, and certain population characteristics (e.g., Asian population share) are negatively associated. LASSO regularization supports the exclusion of non-influential predictors, refining the model and reinforcing the significance of key variables. Incorporating interaction terms and state fixed effects further refines our understanding, revealing that the influence of education on turnout may be contingent on the economic context and that state-level factors account for substantial variation across the U.S. counties.
+
+There are some limitations to our findings. One important caveat is that these associations between county-wide factors and voter turnout do not imply anything about the individuals within counties. Concluding that, for instance, highly educated people are more likely to vote solely based on the data presented here would an example of the ecological fallacy, where inferences about individuals are made based on inferences about groups containing those individuals [@freedman_ecological_1999]. Another limitation is that there is a somewhat arbitrary time lag between the measurement of the predictors and the outcome (the socioeconomic and demographic factors are measured between 2000 and 2016, but the voter turnout rate is measured in 2020). Regardless, these findings have implications for policymakers and organizations interested in increasing voter participation. Interventions that improve socioeconomic conditions, reduce poverty, enhance education, and consider unique state-level political climates could foster higher electoral engagement, but more research should be done at the individual level or experimental level to reach more statistically sound conclusions.
+
 # Bibliography
+
+<div id="refs"></div>
+
 
 # Appendix
