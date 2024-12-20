@@ -20,7 +20,7 @@ require(dplyr)
 require(knitr)
 require(glmnet)
 require(pheatmap)
-require(ggplot2)
+require(ggplot2) 
 require(huxtable)
 options("huxtable.long_minus" = T)
 require(Matrix)
@@ -165,18 +165,24 @@ hist(data$turnout.rate, main = 'Histogram of Turnout Rate', xlab = 'Turnout Rate
 To see the relationship between voter turnout and one predictor variable hypothesized to be associated with it, we plot the 2010 poverty rate against the 2020 turnout rate for each county (Figure \@ref(fig:povertyturnout)). There is a moderate negative association between the variables ($r = -0.571$).
 
 ```{r povertyturnout, echo = F, message = F, fig.cap = 'Scatterplot of poverty rate vs. turnout rate. The negative association between the two variables aligns with the theory that socioeconomic disadvantage is associated with lower electoral participation.'}
+# Calculate the correlation
+correlation <- cor(data$poor_share2010, data$turnout.rate, use = "complete.obs")
+
+# Create the plot with a legend showing the correlation
 data %>%
   ggplot(aes(x = poor_share2010, y = turnout.rate)) +
     geom_point(alpha = 0.5) +
     geom_smooth(method = 'lm') +
+    annotate("text", x = max(data$poor_share2010, na.rm = TRUE) * 0.8, 
+             y = max(data$turnout.rate, na.rm = TRUE) * 0.9, 
+             label = paste0("Correlation (r): ", round(correlation, 3)),
+             hjust = 0, vjust = 1, size = 3.5, color = "blue") +
     labs(
       title = 'Turnout Rate vs. Poverty Rate in U.S. Counties',
       x = '2010 Poverty Rate',
       y = '2020 Turnout Rate'
     ) +
     theme_minimal()
-
-# cor(data$poor_share2010, data$turnout.rate)
 ```
 
 
