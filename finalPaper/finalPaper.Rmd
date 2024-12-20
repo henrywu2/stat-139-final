@@ -40,9 +40,11 @@ The predictors (county-level demographic and socioeconomic characteristics) are 
 
 ## Descriptive Statistics
 
-The dataset contains 3,141 observations and 21 variables, 19 of which (all except county and FIPS code) will be used as predictors. All predictors except state are continuous. For each of our continuous variables, we summarize the number of missing values, mean, median, standard deviation, interquartile range, minimum value, and maximum value (Table \@ref(tab:summary)). 
+The dataset contains 3,141 observations and 21 variables, 19 of which (all except county and FIPS code) will be used as predictors. All predictors except state are continuous. For each of our continuous variables, we summarize the number of missing values, mean, median, standard deviation, interquartile range, minimum value, and maximum value (Table \@ref(tab:summary)).
 
-```{r summary, echo = F, fig.pos = 'H'}
+\newpage
+
+```{r summary, echo = F}
 data <- read.csv("../data/processed/data.csv")
 predictors <- names(data)[!(names(data) %in% c('State', 'County', 'fips'))]
 summary_table <- data.frame()
@@ -107,8 +109,9 @@ align(ht)[,-1] <- 'right'
 markdown(ht)[,1] <- T
 width(ht) <- 1.2
 wrap(ht) <- T
-caption(ht) <- 'Descriptive statistics of the continuous predictors in the dataset.'
+caption(ht) <- 'Descriptions and descriptive statistics of the continuous predictors in the dataset.'
 caption_pos(ht) <- 'bottom'
+latex_float(ht) <- 'h!'
 ht
 
 # dim(data)
@@ -195,28 +198,32 @@ data %>%
 
 We first fit a simple linear regression model containing all predictors except state and no interaction terms. The model output is shown in Table \@ref(tab:baseline).
 
-```{r baseline, echo = F, fig.pos = 'H'}
+```{r baseline, echo = F}
 lm_model <- lm(turnout.rate ~ . - (State + County + fips), data = data)
 # summary(lm_model)
 
-baseline <- data.frame(summary(lm_model)$coef)
-baseline <- data.frame(Variable = rownames(baseline), baseline)
-baseline$Variable <- c(baseline$Variable[1], paste0('`', baseline$Variable[-1], '`'))
-colnames(baseline)[3:5] <- c('SE', '$t$-value', '$p$-value')
+get_summary_table <- function(coefs, caption) {
+  coefs <- data.frame(Variable = rownames(coefs), coefs)
+  coefs$Variable <- c(coefs$Variable[1], paste0('`', coefs$Variable[-1], '`'))
+  colnames(coefs)[3:5] <- c('SE', '$t$-value', '$p$-value')
+  
+  ht <- hux(coefs)
+  bold(ht)[1,] <- T
+  bottom_border(ht)[1,] <- 1
+  align(ht)[,1] <- 'left'
+  align(ht)[,-1] <- 'right'
+  markdown(ht)[,1] <- T
+  escape_contents(ht) <- F
+  caption(ht) <- caption
+  caption_pos(ht) <- 'bottom'
+  # latex_float(ht) <- 'h!'
+  return(ht)
+}
 
-ht <- hux(baseline)
-bold(ht)[1,] <- T
-bottom_border(ht)[1,] <- 1
-align(ht)[,1] <- 'left'
-align(ht)[,-1] <- 'right'
-markdown(ht)[,1] <- T
-escape_contents(ht) <- F
-caption(ht) <- 'Baseline model output.'
-caption_pos(ht) <- 'bottom'
-ht
+get_summary_table(data.frame(summary(lm_model)$coef), 'Baseline model output.')
 ```
 
-The baseline model demonstrates several significant relationships. The model explains approximately 44\% of the variance in turnout rates ($R^2 = 0.442$). Education emerges as a strong positive predictor, with a one percentage point increase in college education associated with a $0.372$ percentage point increase in turnout ($p < 0.001$). Other significant positive predictors include foreign-born share ($\hat{\beta} = 0.110$), White population share ($\hat{\beta} = 0.042$), Black population share ($\hat{\beta} = 0.059$), and employment ($\hat{\beta} = 0.114$). Several factors show significant negative associations with turnout: poverty rate exhibits a strong negative effect ($\hat{\beta} = -0.576$), as do Hispanic population share ($\hat{\beta} = -0.051$), Asian population share ($\hat{\beta} = -0.506$), single parent share ($\hat{\beta} = -0.062$), travel time ($\hat{\beta} = -0.043$), and job growth ($\hat{\beta} = -0.707$). Lastly, several variables, including median household income, math scores, two-bedroom rent, population density, and job density, are not significantly related to turnout at the $\alpha = 0.05$ threshold. This initial exploration suggests that socioeconomic
+The baseline model demonstrates several significant relationships. The model explains approximately 44\% of the variance in turnout rates ($R^2 = 0.442$, adjusted $R^2 = 0.439$). Education emerges as a strong positive predictor, with a one percentage point increase in college education associated with a $0.372$ percentage point increase in turnout ($p < 0.001$). Other significant positive predictors include foreign-born share ($\hat{\beta} = 0.110$), White population share ($\hat{\beta} = 0.042$), Black population share ($\hat{\beta} = 0.059$), and employment ($\hat{\beta} = 0.114$). Several factors show significant negative associations with turnout: poverty rate exhibits a strong negative effect ($\hat{\beta} = -0.576$), as do Hispanic population share ($\hat{\beta} = -0.051$), Asian population share ($\hat{\beta} = -0.506$), single parent share ($\hat{\beta} = -0.062$), travel time ($\hat{\beta} = -0.043$), and job growth ($\hat{\beta} = -0.707$). Lastly, several variables, including median household income, math scores, two-bedroom rent, population density, and job density, are not significantly related to turnout at the $\alpha = 0.05$ threshold. This initial exploration suggests that socioeconomic
 conditions significantly shape local electoral participation.
 
 ### Diagnostics
@@ -252,6 +259,7 @@ cv.lasso <- cv.glmnet(x, y, alpha = 1, nfolds = 10)
 best_lambda <- cv.lasso$lambda.min
 
 lasso_model <- glmnet(x, y, alpha = 1, lambda = best_lambda)
+
 lasso_coefs <- data.frame(coef(lasso_model)[,])
 lasso_coefs <- cbind('Variable' = c(rownames(lasso_coefs)[1], paste0('`', rownames(lasso_coefs)[-1], '`')), lasso_coefs)
 colnames(lasso_coefs)[2] <- 'Coefficient'
@@ -264,6 +272,7 @@ markdown(ht)[,1] <- T
 escape_contents(ht) <- F
 caption(ht) <- 'Coefficients after LASSO regularization with $\\lambda = 2.769\\mathrm{e-}4$.'
 caption_pos(ht) <- 'bottom'
+# latex_float(ht) <- 'h!'
 ht
 ```
 
@@ -290,17 +299,20 @@ Examining correlations among predictors helps identify potential multicollineari
 
 ```{r corr, echo = F, fig.width = 8, fig.height = 8, fig.cap = 'CAPTION!'}
 cor_matrix <- cor(data[, predictors], use = "pairwise.complete.obs")
-pheatmap(cor_matrix, 
-     cluster_rows = TRUE, 
-     cluster_cols = TRUE, 
-     color = colorRampPalette(c("navy", "white", "firebrick3"))(50),
-     main = "Heatmap of Predictor Correlations",
-     height = 30)
+pheatmap(
+  cor_matrix, 
+  cluster_rows = TRUE, 
+  cluster_cols = TRUE, 
+  color = colorRampPalette(c("navy", "white", "firebrick3"))(50),
+  breaks = seq(-1, 1, 2 / 51),
+  main = "Heatmap of Predictor Correlations",
+  height = 30
+)
 ```
 
 The heatmap shows groups of variables that cluster together, indicating underlying socioeconomic dimensions (e.g., poverty and race-related measures clustered together, economic growth and density measures in another cluster). These clusters may reflect underlying latent factors that shape voter turnout.
 
-One concern shown in the correlation matrix is the very high correlation between population density and job density
+\textcolor{red}{One concern shown in the correlation matrix is the very high correlation between population density and job density}
 
 ## Interaction Terms
 
@@ -331,8 +343,10 @@ model_post_lasso <- lm(
   turnout.rate ~ . - State - County - fips - gsmn_math_g3_2013 - rent_twobed2015 + factor(State),
   data = data
 )
+# summary(model_post_lasso)
 
-summary(model_post_lasso)
+final <- data.frame(summary(model_post_lasso)$coef)
+get_summary_table(final[1:15,], 'Output of final model except for state fixed effects.')
 ```
 
 With state fixed effects, the adjusted $R^2$ improves to approximately 0.646, suggesting that differences between states
@@ -355,3 +369,22 @@ There are some limitations to our findings. One important caveat is that these a
 
 
 # Appendix
+
+```{r finalstate, echo = F}
+finalstate <- final[16:dim(final)[1],]
+rownames(finalstate) <- sapply(rownames(finalstate), function(x) {substr(x, 14, nchar(x))})
+finalstate <- data.frame(State = rownames(finalstate), finalstate)
+colnames(finalstate)[3:5] <- c('SE', '$t$-value', '$p$-value')
+
+ht <- hux(finalstate)
+font_size(ht) <- 8
+bold(ht)[1,] <- T
+bottom_border(ht)[1,] <- 1
+align(ht)[,1] <- 'left'
+align(ht)[,-1] <- 'right'
+escape_contents(ht) <- F
+caption(ht) <- 'State fixed effects for final model.'
+caption_pos(ht) <- 'bottom'
+# latex_float(ht) <- 'h!'
+restack_across(ht, rows = 26, on_remainder = 'fill')
+```
