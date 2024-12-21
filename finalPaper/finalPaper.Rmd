@@ -313,3 +313,14 @@ cat("AIC:", model_post_lasso_aic, "\nBIC:", model_post_lasso_bic, "\n")
 With state fixed effects, the adjusted $R^2$ improves (around 0.646), suggesting that differences between states explain a significant portion of turnout variation. After controlling for state-level factors, education, poverty, and various demographic characteristics remain significant. Notably, poverty and time-to-work remain negatively associated with turnout, while educational attainment consistently shows a positive association.
 
 This fixed effects specification suggests that while local socioeconomic conditions are important, broader state-level contexts also shape the electoral participation landscape.
+
+Note, we still prefer random effects given the structure of the data (state-county) as well as to prevent overfitting.
+
+
+# Potential Limitations
+
+1. **Data Handling Issues**: Dropping variables with missing values (e.g., `ln_wage_growth_hs_grad`) without considering imputation methods leads to potential loss of valuable information.
+
+2. **Confounding Variables**: Given a lack of external data, the analysis does not fully account for other important factors such as political engagement, campaign efforts, voting laws, or spatial autocorrelation, which could influence voter turnout.
+
+3. **Temporal Mismatch**: Using data from different time frames (e.g., turnout from 2020 and predictors from 2010 or 2016) may introduce biases due to temporal changes in socioeconomic conditions.
