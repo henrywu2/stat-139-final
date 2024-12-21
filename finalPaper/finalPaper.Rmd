@@ -33,7 +33,7 @@ options(repos = c(CRAN = "https://cloud.r-project.org"))
 
 Every four years, hundreds of millions of Americans cast their ballots for the next president of the United States in the most prominent instance of American participatory democracy. Voter turnout, or the ratio of the number of votes cast in an election to the voting-age or voting-eligible population or number of registered voters, is regarded as important indicator of the health of popular democracy [@woolley_voter_2024]. Barriers to voting, such as strict voter ID laws, purging voter rolls, and reducing early voting times, have been a pressing concern for as long as voting has existed but are especially relevant today [@noauthor_voter_2024]. Social scientists and policymakers are interested in determinants of voter turnout and potential interventions to increase voting.
 
-In this project, we curate a county-level dataset of voter turnout in the 2020 U.S. presidential election and a variety of socioeconomic and demographic characteristics. We hypothesize that socioeconomic and demographic factors provide significant predictive power in predicting voter turnout at the county level. We also hypothesize `poor_share2010` (the poverty rate in 2010) is positively and statistically significantly associated with voter turnout. To assess these hypotheses, we first conduct a baseline linear regression with all continuous predictors and no interaction terms (Section \@ref(baseline)). We also conduct regularization and variable model selection using LASSO (Section \@ref(lasso)), explore a model with an interaction term (Section \@ref(interaction)), and construct a model with state random effects (Section \@ref(final)).
+In this project, we curate a county-level dataset of voter turnout in the 2020 U.S. presidential election and a variety of socioeconomic and demographic characteristics. We hypothesize that socioeconomic and demographic factors provide significant predictive power in predicting voter turnout at the county level. We also hypothesize that `poor_share2010` (the poverty rate in 2010) is positively and statistically significantly associated with voter turnout. To assess these hypotheses, we first conduct a baseline linear regression with all continuous predictors and no interaction terms (Section \@ref(baseline)). We also conduct regularization and model selection using LASSO (Section \@ref(lasso)), explore a model with an interaction term (Section \@ref(interaction)), and construct a model with state random effects (Section \@ref(final)).
 
 
 # Data Description and Exploratory Data Analysis
@@ -199,7 +199,13 @@ data %>%
 
 # Methods
 
-\textcolor{red}{Explain different models used and provide some theoretical background (F-test/ANOVA test, LASSO, random effects)}
+We start by conducting a linear regression between the outcome variable (voter turnout) and the continuous predictor variables (all socioeconomic and demographic characteristics in the dataset) as a baseline model. We assess the statistical significance of the coefficient estimates with $t$-tests, where the $t$-statistic is the estimate divided by the standard error. We assess the predictive power of the model overall with an $F$-test, which compares two nested models (where the $p_1$ predictors in one model are a subset of the $p_2 = p_1 + k$ predictors in the other model). The extra-sums-of-squares $F$-test statistic is $$F = \frac{(SSE_1 - SSE_2)/k}{SSE_2/(n - p_2 - 1)},$$ where $n$ is the number of observations. To assess the overall predictive power of a model, we compare it to the intercept-only model, which has no predictors.
+
+To combat overfitting and conduct model selection, LASSO is used. The loss function that LASSO aims to minimize is $$\sum_{i=1}^n \left(y_i - \beta_0 - \sum_{j=1}^p \beta_j x_{ij} \right)^2 + \lambda \sum_{j=1}^p |\beta_j|$$ for a dataset with $n$ observations and $p$ predictors. Considering that OLS regression minimizes the sum of squared residuals, the LASSO loss function introduces a term proportional to the sum of the absolute values of the coefficients, penalizing large coefficient estimates. $\lambda$ is a tuning parameter that controls the strength of the penalty. Unlike ridge regression, LASSO can shrink coefficients to 0 and act as a form of model selection.
+
+We also explore the effect of adding an interaction term to the model. An interaction term is a product of two existing predictors that allows the effect of one predictor to vary based on the value of another predictor. To assess the impact on the model of adding this interaction term, we again use an extra-sums-of-squares $F$-test, but using the model with and without the interaction term as the nested models.
+
+\textcolor{red}{State random effects}
 
 
 # Results
@@ -211,6 +217,9 @@ We first fit a simple linear regression model containing all predictors except s
 ```{r baseline, echo = F}
 lm_model <- lm(turnout.rate ~ . - (State + County + fips), data = data)
 # summary(lm_model)
+
+baseline <- data.frame(summary(lm_model)$coef)
+baseline_estimates <- baseline$Estimate
 
 get_summary_table <- function(coefs, caption) {
   coefs <- data.frame(Variable = rownames(coefs), coefs)
@@ -230,7 +239,7 @@ get_summary_table <- function(coefs, caption) {
   return(ht)
 }
 
-get_summary_table(data.frame(summary(lm_model)$coef), 'Baseline model output.')
+get_summary_table(baseline, 'Baseline model output.')
 ```
 
 The baseline model has significantly more explanatory power than an intercept-only model ($F = 147.4, p < 10^{-15}$) and demonstrates several significant relationships. The model explains approximately 44\% of the variance in voter turnout between counties ($R^2 = 0.442$, adjusted $R^2 = 0.439$). The statistically significant positive predictors are college-educated share ($\hat{\beta} = 0.372$), foreign-born share ($\hat{\beta} = 0.110$), White population share ($\hat{\beta} = 0.042$), Black population share ($\hat{\beta} = 0.059$), and employment ($\hat{\beta} = 0.114$). On the other hand, poverty rate has a strong negative effect in the model, with a one percentage point increase in poverty rate associated with a $0.576$ percentage point decrease in turnout ($p < 10^{-15}$). Other significant negative predictors are Hispanic population share ($\hat{\beta} = -0.051$), Asian population share ($\hat{\beta} = -0.506$), single parent share ($\hat{\beta} = -0.062$), travel time ($\hat{\beta} = -0.043$), and job growth ($\hat{\beta} = -0.707$). Median household income, math scores, two-bedroom rent, population density, and job density are not significantly related to turnout at the $\alpha = 0.05$ threshold. This initial exploration suggests that socioeconomic conditions significantly shape local electoral participation.
@@ -254,9 +263,7 @@ plot(lm_model, 1:2, sub.caption = '')
 
 ## LASSO {#lasso}
 
-To address potential overfitting and identify the most influential variables, we employ LASSO regularization, which introduces a penalty that can shrink some coefficients to zero. \textcolor{red}{Elaborate on LASSO}
-
-The optimal $\lambda = 2.769\mathrm{e-}4$ was selected through ten-fold cross-validation to achieve a penalty level that balances predictive accuracy and model complexity. This approach ensures we do not overfit by including too many small-effect predictors. LASSO retained most predictors but excluded `gsmn_math_g3_2013` and `rent_twobed2015` (Table \@ref(tab:lasso)). This aligns with earlier findings that these variables were not statistically significant in the baseline model.
+To address potential overfitting and identify the most influential variables, we employ LASSO regularization, which penalizes large coefficient estimates and can shrink coefficients to 0 to conduct model selection. We use ten-fold cross-validation to select a penalty level that balances predictive accuracy and model parsimony, reaching an optimal $\lambda$ of $2.769\mathrm{e-}4$. LASSO retains all predictors except `gsmn_math_g3_2013` and `rent_twobed2015` (Table \@ref(tab:lasso)). This aligns with earlier findings that these variables were not statistically significant in the baseline model.
 
 ```{r lasso, echo = F}
 predictors <- names(data)[!(names(data) %in% c('State', 'County', 'fips', 'turnout.rate'))]
@@ -270,6 +277,7 @@ best_lambda <- cv.lasso$lambda.min
 lasso_model <- glmnet(x, y, alpha = 1, lambda = best_lambda)
 
 lasso_coefs <- data.frame(coef(lasso_model)[,])
+lasso_estimates <- lasso_coefs[,1]
 lasso_coefs <- cbind('Variable' = c(rownames(lasso_coefs)[1], paste0('`', rownames(lasso_coefs)[-1], '`')), lasso_coefs)
 colnames(lasso_coefs)[2] <- 'Coefficient'
 ht <- hux(lasso_coefs)
@@ -285,9 +293,7 @@ caption_pos(ht) <- 'bottom'
 ht
 ```
 
-Figure \@ref(fig:lassoplot) shows the relationship between $\lambda$ and the coefficients of the predictors. As $\lambda$ increases (moving right on the $x$-axis), the regularization strength increases and more predictors drop out of the model with coefficients of 0. The vertical dashed black line shows the chosen $\lambda$. Predictors with coefficients of 0 at the vertical line are dropped from the final model. This graph visually demonstrates which variables are “important enough” to survive the LASSO penalty.
-
-\textcolor{red}{Not much regularization for most variables}
+Figure \@ref(fig:lassoplot) shows the relationship between $\lambda$ and the coefficients of the predictors, visually demonstrating which variables are "important" enough to survive the LASSO penalty. As $\lambda$ increases (moving right on the $x$-axis), the regularization strength increases and more predictors drop out of the model with coefficients of 0. The vertical dashed black line shows the chosen $\lambda$. Predictors with coefficients of 0 at the vertical line are dropped from the final model. At the chosen $\lambda$, most of the coefficients have not shrunk towards 0 very far compared to the left side of the graph (see Table \@ref(tab:comparison) for a comparison of baseline model and LASSO coefficients).
 
 ```{r lassoplot, echo = F, fig.width = 7, fig.height = 5, fig.cap = 'Coefficient values plotted against $\\lambda$ showing the effect of LASSO regularization. As $\\lambda$ increases, the coefficients shrink to 0.'}
 cols <- rainbow(ncol(x))
@@ -300,9 +306,7 @@ legend("bottomright", legend = colnames(x), col = cols, lty=1, cex=0.6)
 
 ## Correlation Structure
 
-Examining correlations among predictors helps identify potential multicollinearity and structure in the data. The heatmap (Figure \@ref(fig:corr)) shows groups of variables that cluster together, indicating underlying socioeconomic dimensions (e.g., poverty and race-related measures clustered together, economic growth and density measures in another cluster). These clusters may reflect underlying latent factors that shape voter turnout.
-
-\textcolor{red}{One concern shown in the correlation matrix is the very high correlation between population density and job density}
+Examining correlations among predictors helps identify potential multicollinearity and structure in the data. The heatmap in Figure \@ref(fig:corr) shows groups of variables that cluster together, indicating underlying socioeconomic dimensions. For instance, population density, job density, foreign share, Hispanic share, and Asian share are clustered together, possibly reflecting the tendency of densely populated cities to be racially diverse and have high foreign-born populations. Another cluster groups annual average job growth, proportion with a bachelor's degree or higher, and median two-bedroom rent, potentially capturing areas with highly educated residents that are areas of economic growth. These clusters may reflect underlying latent factors that shape voter turnout. One concern shown in the correlation matrix is the very high correlation between population density and job density ($r = 0.991$). Near-perfect collinearity can artificially inflate standard errors for coefficient estimates. In the baseline model, the coefficients for population density and job density were both not statistically significant (Table \@ref(tab:baseline)), so we should be wary of this result and consider removing one of the predictors.
 
 ```{r corr, echo = F, fig.width = 8, fig.height = 8, fig.cap = 'Heatmap of the correlation matrix of the continuous predictors.'}
 cor_matrix <- cor(data[, predictors], use = "pairwise.complete.obs")
@@ -315,11 +319,13 @@ pheatmap(
   main = "Heatmap of Predictor Correlations",
   height = 30
 )
+
+# cor(data$popdensity2010, data$job_density_2013)
 ```
 
 ## Interaction Terms {#interaction}
 
-We test whether adding an interaction term between education and poverty (`frac_coll_plus2010:poor_share2010`) improves model performance.
+We test whether adding an interaction term between education and poverty (`frac_coll_plus2010:poor_share2010`) to the LASSO-regularized model improves model performance. To do so, we use an extra-sums-of-squares $F$-test.
 
 ```{r interaction, echo = F}
 model_reduced <- lm(turnout.rate ~ . - State - County - fips - gsmn_math_g3_2013 - rent_twobed2015, data = data)
@@ -329,12 +335,10 @@ model_full <- lm(turnout.rate ~ . - State - County - fips - gsmn_math_g3_2013 - 
                  data = data)
 
 anova_test <- anova(model_reduced, model_full)
-# anova_test
+anova_test
 ```
 
-A highly significant test result ($p < 10^{-15}$) suggests the interaction between college education fraction and poverty
-share is crucial, indicating that the effect of education on turnout may depend on the poverty context of the
-county (and vice versa).
+A highly significant test result ($F = 94.894$, $p < 10^{-15}$) suggests the interaction between college education fraction and poverty share is highly significant, indicating that the effect of education on turnout may depend on the poverty context of the county (and vice versa).
 
 ## State Random Effects {#final}
 
@@ -349,6 +353,7 @@ model_post_lasso <- lm(
 # summary(model_post_lasso)
 
 final <- data.frame(summary(model_post_lasso)$coef)
+final_estimates <- c(final[c(1:9), 1], 0, 0, final[c(10:15), 1])
 get_summary_table(final[1:15,], 'Output of final model except for state fixed effects.')
 ```
 
@@ -364,11 +369,29 @@ contexts also shape the electoral participation landscape.
 
 Our analysis shows that socioeconomic and demographic factors strongly influence county-level voter turnout. Education and certain demographic features (e.g., Black population share) are robust, positive predictors of turnout, while higher poverty rates, longer travel times, and certain population characteristics (e.g., Asian population share) are negatively associated. LASSO regularization supports the exclusion of non-influential predictors, refining the model and reinforcing the significance of key variables. Incorporating interaction terms and state fixed effects further refines our understanding, revealing that the influence of education on turnout may be contingent on the economic context and that state-level factors account for substantial variation across the U.S. counties.
 
-There are some limitations to our findings. One important caveat is that these associations between county-wide factors and voter turnout do not imply anything about the individuals within counties. Concluding that, for instance, highly educated people are more likely to vote solely based on the data presented here would an example of the ecological fallacy, where inferences about individuals are made based on inferences about groups containing those individuals [@freedman_ecological_1999]. Another limitation is that there is a somewhat arbitrary time lag between the measurement of the predictors and the outcome (the socioeconomic and demographic factors are measured between 2000 and 2016, but the voter turnout rate is measured in 2020). We posit that these predictors do not change much from year to year, which is an assumption that could be tested with more data.
+Table \@ref(tab:comparison) compares coefficient estimates for the baseline model (no interaction terms or regularization), LASSO model, and final model with LASSO-omitted predictors and state random effects. We can see that most of the estimates for the LASSO model are close to the corresponding estimates for the baseline model, but interestingly, LASSO actually increased the absolute value of some coefficients (such as employment).
 
-\textcolor{red}{There may be other characteristics that impact county-level voter turnout not captured in our data}
+\textcolor{red}{Interpret final model coefficient estimates!}
 
-Regardless, these findings have implications for policymakers and organizations interested in increasing voter participation. Interventions that improve socioeconomic conditions, reduce poverty, enhance education, and consider unique state-level political climates could foster higher electoral engagement, but more research should be done at the individual level or experimental level to reach more statistically sound conclusions.
+```{r comparison, echo = F}
+ht <- hux(data.frame(
+  Variable = lasso_coefs[,1],
+  Baseline = baseline_estimates,
+  LASSO = lasso_estimates,
+  Final = final_estimates
+))
+bold(ht)[1,] <- T
+bottom_border(ht)[1,] <- 1
+align(ht)[,1] <- 'left'
+align(ht)[,-1] <- 'right'
+markdown(ht)[,1] <- T
+caption(ht) <- 'Comparison of coefficients for quantitative predictors in the baseline, LASSO, and final models.'
+caption_pos(ht) <- 'bottom'
+# latex_float(ht) <- 'h!'
+ht
+```
+
+There are some limitations to our findings. One important caveat is that these associations between county-wide factors and voter turnout do not imply anything about the individuals within counties. Concluding that, for instance, highly educated people are more likely to vote solely based on the data presented here would an example of the ecological fallacy, where inferences about individuals are made based on inferences about groups containing those individuals [@freedman_ecological_1999]. Another limitation is that there is a somewhat arbitrary time lag between the measurement of the predictors and the outcome (the socioeconomic and demographic factors are measured between 2000 and 2016, but the voter turnout rate is measured in 2020). We posit that these predictors do not change much from year to year, which is an assumption that could be tested with more data. Additionally, there may be other characteristics that impact county-level voter turnout, such as age, that are not captured in our data. Regardless, these findings have implications for policymakers and organizations interested in increasing voter participation. Interventions that improve socioeconomic conditions, reduce poverty, enhance education, and consider unique state-level political climates could foster higher electoral engagement, but more research should be done at the individual level or experimental level to reach more statistically sound conclusions.
 
 # Bibliography
 
